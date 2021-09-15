@@ -1,0 +1,1320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ xmlns:xdb="http://xmlns.oracle.com/xdb"
+ xmlns:xdas="http://www.flatironssolutions.com/xdas"
+ elementFormDefault="qualified"
+ attributeFormDefault="unqualified">
+  <!-- ******************************************************************* -->
+  <!-- EXPANDED_COPYRIGHT_TEXT_START: ERAM                             -->
+  <!-- Copyright 1988-2018, Leidos as an unpublished                              -->
+  <!-- work. All rights reserved. This computer software is a TRADE                             -->
+  <!-- SECRET of Leidos and shall not be reproduced,                             -->
+  <!-- disclosed, or used without prior written permission of Leidos.                             -->
+  <!-- This computer Software was developed with the sponsorship of the                             -->
+  <!-- U.S. Government under Contract No(s) DTFA01-03-C-00015                             -->
+  <!-- which has a copyright license in accordance with AMS 3.5-13(c) (1).                             -->
+  <!-- EXPANDED_COPYRIGHT_TEXT_STOP: ERAM                             -->
+  <!--  @(#) dadp/icd/ADR.xsd, 22, Wed Feb 21 14:04:31 2018                                    -->
+  <!--                                                                     -->
+  <!-- ADAPTATION ICD SCHEMA : ADR.xsd                                     -->
+  <!-- APPLICATION SEGMENTs : EADP                                         -->
+  <!--                                                                     -->
+  <xsd:annotation>
+    <xsd:documentation>
+      DESCRIPTION:        This is the ICD for Adapted Departure Routes
+                          (ADRs). An ADR is an ATC auto route that replaces
+                          the route of flight from the departure airport
+                          to a designated transition fix. ADRs may
+                          include Departure Procedures (DPs) within
+                          their route strings. ADRs are based on
+                          legacy PDRs, and incorporate the elements
+                          of PDRs and DLINEs. DLINEs become ADR crossing
+                          lines with the accompanying transition fix for
+                          the DLINE being the transition fix of the
+                          crossing line.
+    </xsd:documentation>
+    <xsd:documentation>
+      SCOPE: Local
+    </xsd:documentation>
+    <xsd:documentation>
+      CSCIs: AERO, EOPD, SGET
+      External Users: AFSS, DSP, TBFM
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- CHANGE HISTORY:                                                     -->
+  <!--                                                                     -->
+  <!--  MM/DD/YYYY  REASON     PGR DESCRIPTION OF CHANGE                   -->
+  <!--  ==========  ======     === =====================                   -->
+  <xsd:annotation>
+    <xsd:documentation xdas:type="history">
+      01/4/2005   ER_384     RFM Initial Delivery
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      08/1/2005   PR_2132     MM Add space to clearance alphanumerics
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      08/17/2005  PR_2132     MM Added '[?]{5}' to FixName
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      05/24/2006  PR_11149   JRN Updated VAL_CLEARANCE_ALPHAS_Type
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      06/30/2006  PR_12435   MJR SIG385 Automated Documentation
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      12/18/2006  ER_580     DPH SIG451 Updated the maximum records
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      02/26/2007  PR_21328   JRN Updated IERR_PRIORITY_Type
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      06/21/2007  ER_587     DPH SIG363 Updated ClearanceSppAlphas
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      07/02/2007  ER_588     DPH SIG368 Updated AIRPORT_ID_5_Type
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      08/20/2007  PR_23370   GRF Change History mod for
+                                 Documentation Set.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      12/10/2007  ER_599     VUH SIG368 - Reworked airport lists to
+                                 remove ICAO code.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      12/10/2007  ER_631     RFM SIG393 - Remove AcCriteriaType,
+                                          require at least 1 criteria.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      03/15/2008  ER_668     DPH SIG643 Update TransitionLineDistance range
+                                        from 0..400 to 0..700.
+                                        Update RoutePriority description.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      05/14/2008  PR_34759   KDJ Update pattern format due to xmlstarlet
+                                 change.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      04/10/2008  ER_683      HL SIG571 - Added required altitude range
+                                        to crossing lines.
+                                        - Removed CrossingLineType
+                                        - Added Airport list for
+                                        crossing line
+                                        - Added AC Class Criteria for ADR
+                                        crossing line
+                                        - Added DP ID to
+                                        ADRAutoRouteAlphas record.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      05/28/2008  ER_696     DPH SIG558 Add IERRCriteria ID, group ID,
+                                        GroupFacility and
+                                        ADRNavQualification data.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      05/04/2009  ER_750      HL SIG852 Add SilentRouteString
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      05/18/2009  ER_755      HL SIG822 Add adapted Order to the route.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      06/02/2009  ER_755      FT SIG822 Add RouteContentCriteria.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      11/25/2009  ER_791     CCF SIG611 Added AirwayID.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      02/04/2010  ER_810     DMH SIG941 Added RouteFixList.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      05/21/2010  ER_830     KDJ SIG1016 Added transition fix
+                                 Append, Explicit and Implicit
+                                 data
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      06/14/2011  ER_910      FT SIG1205 Auto limit Required.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      08/15/2010  PR_54718   CCF Moved IERRCriteria data to IERRCriteria ICD
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      09/23/2013  PR_64761   DCS Added EOPD as a user of the ICD.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      02/10/2016  PR_72626   DCS Updated CSCIs list.
+                  PR_72640
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      09/07/2016  ER_1409     CCF SIG1707 Added CrossingLineApplicability.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      12/18/2017  PR_80768   MHC Add AFSS to external users, doc only.
+    </xsd:documentation>
+    <xsd:documentation xdas:type="history">
+      01/02/2018  ER_1507    MHC SIG1667 Add isExcluded flag to indicate if
+                                 an AC Class is excluded for a given ADR.
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************* -->
+  <!-- Types used in ICD Structure                                         -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="ADAPTED_ROUTE_NAME_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for the name of an adapted route (AAR/ADR/ADAR).
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="5"/>
+      <xsd:maxLength value="5"/>
+      <xsd:pattern value="[A-Z0-9]*"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ALTITUDE_ZERO_TO_99K_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Altitude in feet, 0..99900 feet.
+      </xsd:documentation>
+      <xsd:documentation>
+        Unit: Feet
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="99900"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="AUTO_ROUTE_LIMIT_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for auto route limit for an AAR or
+        ADR. A value of 0-9 indicates segments,
+        a value of 40-1000 indicates nmi.
+      </xsd:documentation>
+      <xsd:documentation>
+        Unit: legs or nmi
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="1000"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="VAL_CLEARANCE_ALPHAS_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for a character string adapted for an
+        Adapted Route (AAR/ADR/ADAR) to be provided
+        to the controller at the time the
+        auto-route is applied.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="42"/>
+      <xsd:pattern value="[A-Z0-9 '\-#$\*,\./:@_\|\+&amp;]*"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ADAPTED_ROUTE_FIELD_10_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for an Adapted Route RouteString.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="48"/>
+      <xsd:pattern value="[A-Z0-9\./+]*"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ADAPTED_SILENT_ROUTE_STRING_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for an Adapted Route RouteString.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="100"/>
+      <xsd:pattern value="[A-Z0-9\./+]*"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ADAPTED_CONTENT_CRITERIA_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for an Adapted Route Content Criteria.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="100"/>
+      <xsd:pattern value="[A-Z0-9\./+]*"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="FIX_NAME_2_12_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for 2 to 12 char fix name
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="2"/>
+      <xsd:maxLength value="12"/>
+      <xsd:pattern value="[A-Z0-9/]{2,12}|[?]{5}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="FIX_ID_Type">
+    <xsd:annotation>
+      <xsd:documentation/>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="5"/>
+      <xsd:pattern value="[A-Z0-9]{1,5}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ICAO_CODE_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Designates the source of an airport or fix. Formats include:
+      </xsd:documentation>
+      <xsd:documentation>
+        K# - Designates a geographical area of the
+             United States as indicated in published
+             data from ARINC 424.
+      </xsd:documentation>
+      <xsd:documentation>
+        KN - Designates airport or fix was published from NFDC
+      </xsd:documentation>
+      <xsd:documentation>
+        KD - Designates fix was created from DACS route data
+      </xsd:documentation>
+      <xsd:documentation>
+        LL - Designates fix was created from the corresponding
+             ARTCC or is an international fix.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="2"/>
+      <xsd:pattern value="[A-Z0-9]*"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="AIRPORT_ID_5_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        ICAO-defined airport ID for an airport.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="2"/>
+      <xsd:maxLength value="5"/>
+      <xsd:pattern value="[A-Z0-9]{2,5}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="AC_CRITERIA_ID_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Aircraft Class Criteria Identifiers.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="12"/>
+      <xsd:pattern value="[A-Z0-9]{1,12}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="FACILITY_ID_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Facility Name
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="3"/>
+      <xsd:maxLength value="3"/>
+      <xsd:pattern value="[A-Z]{1}[A-Z0-9]{2}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="IERR_ID_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type representing an IERR Name.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="20"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="IERR_PRIORITY_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for the priority of a selected IERR
+        criteria used to resolve ties between competing
+        adapted routes in auto-route assignment.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="1"/>
+      <xsd:maxInclusive value="999"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+ 
+
+  <xsd:simpleType name="ROUTE_ORDER_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+           Type for ADAR route priority used
+           to resolve ties between competing adapted routes
+           in auto-route assignment.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="1"/>
+      <xsd:maxInclusive value="100000"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="CROSSING_LINE_ID_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        ID of an Adapted Route or APR crossing line.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="1"/>
+      <xsd:maxLength value="25"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="VAL_CROSS_DIST_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Represents an along route distance from
+        an airport within which route segments will
+        be interrogated for intercepts of this
+        crossing line.
+      </xsd:documentation>
+      <xsd:documentation>
+           Unit: nmi
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="700"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="LATITUDE_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Latitude, 90S..90N, in the form ddmmssnn[NS].
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:length value="9"/>
+      <xsd:pattern value="(([0-8][0-9]([0-5][0-9]){2}[0-9]{2})|90{7})[NS]"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="LONGITUDE_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Longitude, 180E..180W, in the form dddmmssnn[EW].
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:length value="10"/>
+      <xsd:pattern value="((((0[0-9]|1[0-7])[0-9])([0-5][0-9]){2}[0-9]{2})|180{7})[EW]"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="COORDINATE_SPHERICAL_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Spherical coordinates expressed as
+        a cartesian unit vector (CUV).
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:double">
+      <xsd:minInclusive value="-1.0"/>
+      <xsd:maxInclusive value="1.0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ROUTE_ID_6_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Route ID.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="3"/>
+      <xsd:maxLength value="6"/>
+      <xsd:pattern value="[A-Z0-9]{3,6}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="AND_OR_BOOLEAN_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type representing a value is AND or OR.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="AND"/>
+      <xsd:enumeration value="OR"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ROUTE_ID_8_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type for a route ID found in a filed flight plan
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:minLength value="2"/>
+      <xsd:maxLength value="8"/>
+      <xsd:pattern value="[A-Z0-9]{2,8}"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="TFIX_TYPE_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type representing the append, implicit
+        and explicit transition fix type
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="Append"/>
+      <xsd:enumeration value="Implicit"/>
+      <xsd:enumeration value="Explicit"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ONE_TO_999_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        TFix index, 1..999.
+      </xsd:documentation>
+      <xsd:documentation>
+        Unit: none
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:integer">
+      <xsd:minInclusive value="1"/>
+      <xsd:maxInclusive value="999"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="CROSSING_LINE_APPLICABILITY_TYPE_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type definition for Crossing Line Applicability Type.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="Direct_Route"/>
+      <xsd:enumeration value="Adapted_Route"/>
+      <xsd:enumeration value="Direct_Or_Adapted_Route"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="ROUTE_LIST_TYPE_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type definition for Crossing Line Route List Type.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="Required"/>
+      <xsd:enumeration value="Prohibited"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="CROSSING_LINE_ROUTE_TYPE_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Type definition for Crossing Line Route List Type.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="AIRWAY"/>
+      <xsd:enumeration value="DP"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="TF_FLAG_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Boolean flag reported as "true" or "false".
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:boolean">
+      <xsd:pattern value="true|false"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ************************************************************** -->
+  <!--                  ICD Top Level Element                         -->
+  <!-- ************************************************************** -->
+  <xsd:element name="ADR_Records">
+    <xsd:annotation>
+      <xsd:documentation/>
+    </xsd:annotation>
+    <xsd:complexType>
+      <xsd:sequence>
+        <xsd:element name="ADRRecord" type="ADRRecord_Type"
+           minOccurs="0" maxOccurs="1600">
+          <xsd:annotation>
+            <xsd:documentation/>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:complexType>
+  </xsd:element>
+  <!-- ************************************************************** -->
+  <!--                  ICD Record Structure                          -->
+  <!-- ************************************************************** -->
+  <xsd:element name="ADRRecord" type="ADRRecord_Type">
+    <xsd:annotation>
+      <xsd:documentation>
+        Record containing adaptation for one ADR.
+      </xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>
+  <xsd:complexType name="ADRRecord_Type">
+    <xsd:sequence>
+      <xsd:element name="ADR_ID" type="ADAPTED_ROUTE_NAME_Type">
+        <xsd:annotation>
+          <xsd:documentation>
+            ID of the ADR
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="UpperAltitude" type="ALTITUDE_ZERO_TO_99K_Type">
+        <xsd:annotation>
+          <xsd:documentation>
+            Maxiumum altitude at which this ADR can be
+            applied. This must be greater than
+            the LowerAltitude.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="LowerAltitude" type="ALTITUDE_ZERO_TO_99K_Type">
+        <xsd:annotation>
+          <xsd:documentation>
+            Minimum altitude at which this ADR can be
+            applied. This must be less than the
+            UpperAltitude.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="Order" type="ROUTE_ORDER_Type">
+        <xsd:annotation>
+          <xsd:documentation>
+            Adapted order route is used to resolve ties
+            between competing ADRs in auto-route assignment
+            for a non-IERR route priority.
+            An order of 1 is the highest order and
+            an order of 100000 is the lowest order.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="AutoRouteLimit" type="AUTO_ROUTE_LIMIT_Type">
+        <xsd:annotation>
+          <xsd:documentation>
+            Auto route limit for this ADR. A value of
+            0-9 indicates segments, 40-1000 indicates nmi
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="ADRAutoRouteAlphas" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            ADR will contain either clearance support
+            alphanumerics, or a route string.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:choice>
+              <xsd:sequence>
+                <xsd:element name="ClearanceSupportAlphas"
+                   type=  "VAL_CLEARANCE_ALPHAS_Type"
+                   minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Character string adapted for an Adapted
+                      Route (AAR/ADR/ADAR) to be provided to
+                      the controller at the time the auto-route
+                      is applied.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="SilentRouteString"
+                   type="ADAPTED_SILENT_ROUTE_STRING_Type">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Silent Route String comprises the fixes
+                      from ADR where there is no W-key in Host.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:sequence>
+              <xsd:element name="RouteString"
+                 type="ADAPTED_ROUTE_FIELD_10_Type">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    Route String replaces the filed route between
+                    the departure airport and the ADR transition fix.
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:element>
+            </xsd:choice>
+            <xsd:element name="DP_ID" type="ROUTE_ID_6_Type"
+               minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  DP ID is set and applied to either the Route String
+                  or the Silent Route String, whichever shows up in
+                  in the ADRAutoRouteAlphas record.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="Airways" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  List of adapted airways referenced in converted
+                  routes.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="AirwayID" type="ROUTE_ID_8_Type"
+                     minOccurs="1" maxOccurs="20">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Adapted airway ID referenced in converetd
+                        route.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="RouteFixList">
+        <xsd:annotation>
+          <xsd:documentation>
+            List of fixes making up the route.  This list can be
+            used by applications which need the fixes comprising
+            the route (e.g. TMA).
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="RouteFix"
+               minOccurs="1" maxOccurs="999">
+              <xsd:annotation>
+                <xsd:documentation>
+                  One of the fixes comprising the converted route.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="FixName" type="FIX_NAME_2_12_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Name of the converted route fix.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="UniqueFixID"
+                      minOccurs="0" maxOccurs="1">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Optional record containing FixID and
+                        ICAO code, if adapted.  Cases where
+                        this is not adapted include
+                        generated lat/long or FRD fixes.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element name="FixID" type="FIX_ID_Type">
+                          <xsd:annotation>
+                            <xsd:documentation>
+                              ID of this fix.
+                            </xsd:documentation>
+                          </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="ICAOCode"
+                               type="ICAO_CODE_Type">
+                          <xsd:annotation>
+                            <xsd:documentation>
+                              ICAO code of this fix.
+                            </xsd:documentation>
+                          </xsd:annotation>
+                        </xsd:element>
+                      </xsd:sequence>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ADRTransitionFix" minOccurs="1" maxOccurs="100">
+        <xsd:annotation>
+          <xsd:documentation>
+            List of transition fixes for this ADR.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="FixName" type="FIX_NAME_2_12_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Fix name designated as a transition
+                  fix for this ADR.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="FixID" type="FIX_ID_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Fix ID of transition fix for this ADR
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="ICAOCode" type="ICAO_CODE_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  ICAO code of transition fix for this ADR
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TFixType"
+               type="TFIX_TYPE_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  How the t-fix will be applied to the alphanumerics.
+                  When Append:
+                  T-Fix is processed by appending to the alphanumerics
+                  When Explicit:
+                  T-fix is explicitly in the alphanumerics, which
+                  will be trimmed to end at the t-fix. Requires
+                  the TFixIndex element.
+                  When Implicit:
+                  T-fix is implicitly in the alphanumerics, included
+                  when a referenced route is expanded. Alphanumerics
+                  will be trimmed to end at the t-fix. Requires
+                  the TFixIndex and TFixRoute elements.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TFixIndex"
+               type="ONE_TO_999_Type" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  When Explicit:
+                  Where the t-fix is in the converted route
+                  counting null elements.  Basically it is the
+                  number of dots before the route element containing
+                  the fix + 1 (since the route will start with an
+                  element).
+                  When Implicit:
+                  Where the route, which when expanded contains the
+                  T-fix, is in the alphanumerics.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="TFixRoute"
+               type="ROUTE_ID_8_Type" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  The name of the route which when expanded contains
+                  the T-fix. Only applicable for Implicit type.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ADRAirportList" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            List of airports to which this ADR applies.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="AirportID" type="AIRPORT_ID_5_Type"
+               minOccurs="1" maxOccurs="60">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Departure airport for this ADR.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ADRACClassCriteriaList"
+         minOccurs="1" maxOccurs="999">
+        <xsd:annotation>
+          <xsd:documentation>
+            List of class criteria for this ADR.  Each
+            criteria is evaluated and if any is met the
+            ADR is applicable.  IsExcluded criteria must
+            not be met to be applicable.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="AircraftClassCriteriaID"
+               type="AC_CRITERIA_ID_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Class criteria defined as included or
+                  excluded for this ADR.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="AircraftClassCriteriaFac"
+               type="FACILITY_ID_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Facility that defined this criteria.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="IsExcluded"
+               type="TF_FLAG_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Indicates that this ACCriteria needs to 
+                  evaluate to false to be met.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="DepartureContentCriteria"
+         minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            List of Departure Content Criteria for this ADR.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ContentCriteria"
+               type="ADAPTED_CONTENT_CRITERIA_Type"
+                         minOccurs="1" maxOccurs="10">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Content Criteria for this ADR.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ADRIERRCriteria" minOccurs="0" maxOccurs="999">
+        <xsd:annotation>
+          <xsd:documentation>
+            IERR criteria applicable to this ADR.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="IERRCriteriaID" type="IERR_ID_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Identifies a set of IERR Criteria
+                  parameters for an ADR.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="IERRFacility" type="FACILITY_ID_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Facility that defined the IERR criteria.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="RoutePriority" type="IERR_PRIORITY_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Adapted route priority to use to resolve ties
+                  between competing ADRs in auto-route assignment.
+                  A priority of 1 is the highest priority and
+                  a priority of 999 is the lowest priority.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="ADRCrossingLine" minOccurs="0" maxOccurs="100">
+        <xsd:annotation>
+          <xsd:documentation>
+            A mapping from a crossing line to the transition fix for the
+            associated ADR.  If a flight plan crosses the crossing line in a
+            route context allowed by the crossing line applicability rule and
+            meets the criteria for satisfying the crossing line and meets the
+            criteria for the ADR, the transition fix will be used for the
+            applied ADR.
+          </xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="CrossingLineID"
+               type="CROSSING_LINE_ID_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  ID of the crossing line
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="UpperAltitude"
+              type="ALTITUDE_ZERO_TO_99K_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Maxiumum altitude at which this ADR Crossing line
+                  can be applied. This must be greater than or
+                  equal to the LowerAltitude.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="LowerAltitude"
+              type="ALTITUDE_ZERO_TO_99K_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Minimum altitude at which this ADR Crossing line
+                  can be applied. This must be less than or equal
+                  to the UpperAltitude.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="CrossingLineApplicability" >
+              <xsd:annotation>
+                <xsd:documentation>
+                  A modifier which defines the type of route segment and
+                  resultant processing for crossing lines used to apply an
+                  autoroute crossing lines can be designated to apply in
+                  several route contexts. One context is when the crossing line
+                  is positioned to intersect a set of direct (fix to fix) routes
+                  that are commonly flown while the other context is that the
+                  crossing line intersects a predetermined adapted route or set
+                  of adapted routes. The user may also specify that the crossing
+                  line is applicable in both contexts.
+                  Crossing lines applicable can also be specified to be
+                  preferred ahead of transition fixes which occur in the current
+                  route rather than only being applied when no transition fixes
+                  can be found.
+                  When not limited to application along a direct route segment,
+                  the applicability attributes can also include a list of routes
+                  which may either include or exclude a specified route or
+                  routes (application of the crossing line must satisfy the
+                  route list).
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ApplicabilityType"
+                               type="CROSSING_LINE_APPLICABILITY_TYPE_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        The rules defining the application domain of the
+                        associated crossing line. The crossing line can be
+                        - Direct_Route. The intersection of the filed route with
+                          the crossing line must occur on a filed fix to fix
+                          direct segment.
+                        - Adapted_Route. The intersection must occur along an
+                          adapted route (where the identifier of the route may
+                          be further qualified by a route list).
+                        - Direct_Or_Adapted_Route. The intersection may occur
+                          either with a direct route or adapted route segment.
+                 </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="PriorityInd" type="TF_FLAG_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        An indicator that changes the priority used to assign
+                        preference to autoroutes applied by intersection with a
+                        crossing line over those applied by the presence of a
+                        transition fix.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="RouteList" minOccurs="0" maxOccurs="1">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        A list of routes which may be used to further constrain
+                        a crossing line intercept to a route segment which is
+                        either:
+                        a) along the adapted route (when the associated modifier
+                            is "required")
+                        b) NOT along the adapted route (when the associated
+                           modifier is "prohibited")
+                        Only fileable routes may be included in the list
+                        (airways, DPs, or STARs). Military routes are excluded
+                        as autoroutes are not applied over military routes.
+                        Route lists for departure crossing lines may include DPs
+                        and airways while route lists for arrivals may contain
+                        only airways or STARs.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:sequence>
+                        <xsd:element name="RouteListType"
+                                     type="ROUTE_LIST_TYPE_Type">
+                          <xsd:annotation>
+                            <xsd:documentation>
+                              The rule used to evaluate an associated list of
+                              routes.
+                              - Required. The intercept of the crossing line
+                                must occur along one of the listed routes.
+                              - Prohibited. The intercept must occur on a route
+                                other than one of the listed routes.
+                            </xsd:documentation>
+                          </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="RouteListEntry"
+                                     minOccurs="1" maxOccurs="50">
+                          <xsd:annotation>
+                            <xsd:documentation>
+                              Identification of a specific route in a list of
+                              routes used to further constrain a crossing line
+                              applied to an adapted route segment.
+                              Identifies the route by name and route type.
+                            </xsd:documentation>
+                          </xsd:annotation>
+                          <xsd:complexType>
+                            <xsd:sequence>
+                              <xsd:element name="RouteType"
+                                           type="CROSSING_LINE_ROUTE_TYPE_Type">
+                                <xsd:annotation>
+                                  <xsd:documentation>
+                                    The type of route for a route contained in a
+                                    list of routes to be used in the evaluation
+                                    of a crossing line.
+                                  </xsd:documentation>
+                                </xsd:annotation>
+                              </xsd:element>
+                              <xsd:element name="RouteID"
+                                           type="ROUTE_ID_8_Type">
+                                <xsd:annotation>
+                                  <xsd:documentation>
+                                    The unique identifier of a fileable route
+                                    (other than a military route). Used in the
+                                    definition of the applicability criteria for
+                                    a route list for a crossing line used in
+                                    autoroute processing.
+                                  </xsd:documentation>
+                                </xsd:annotation>
+                              </xsd:element>
+                            </xsd:sequence>
+                          </xsd:complexType>
+                        </xsd:element>
+                      </xsd:sequence>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="ADRCrossingLineTransFix"
+               minOccurs="1" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Transition fix for this crossing line.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="FixName"
+                     type="FIX_NAME_2_12_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Fix name designated as a transition fix
+                        for this ADR crossing line
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="FixID" type="FIX_ID_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Fix ID of transition fix for this ADR
+                        crossing line
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="ICAOCode" type="ICAO_CODE_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        ICAO code of transition fix for this ADR
+                        crossing line
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="TransitionLineDistance"
+               type="VAL_CROSS_DIST_Type">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Along route distance from an airport within
+                  which route segments will be interrogated
+                  for intercepts of this crossing line.
+                </xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="ADRLineCoordinates"
+               minOccurs="2" maxOccurs="99">
+              <xsd:annotation>
+                <xsd:documentation>
+                  List of coordinates for this ADR.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="Latitude" type="LATITUDE_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Geodetic latitude of this point of the
+                        crossing line
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="Longitude" type="LONGITUDE_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Geodetic longitude of this point of the
+                        crossing line
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="XSpherical"
+                     type="COORDINATE_SPHERICAL_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        X spherical value of crossing line point
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="YSpherical"
+                     type="COORDINATE_SPHERICAL_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Y spherical value of crossing line point
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="ZSpherical"
+                     type="COORDINATE_SPHERICAL_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Z spherical value of crossing line point
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="ADRLineAirportList"
+              minOccurs="1" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  List of airports to which the ADR
+                  crossing line applies.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="AirportID"
+                    type="AIRPORT_ID_5_Type"
+                    minOccurs="1" maxOccurs="60">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Departure airport for the ADR
+                        crossing line.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="ADRLineACCCriteriaList"
+              minOccurs="1" maxOccurs="999">
+              <xsd:annotation>
+                <xsd:documentation>
+                  List of class criteria for the ADR crossing line.
+                  Each criteria is evaluated and if any is met the
+                  ADR crossing line is applicable.  IsExcluded
+                  criteria must not be met to be applicable.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="AircraftClassCriteriaID"
+                    type="AC_CRITERIA_ID_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Class criteria defined as included or
+                        excluded for the ADR crossing line.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="AircraftClassCriteriaFac"
+                    type="FACILITY_ID_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Facility that defined this criteria.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="IsExcluded"
+                    type="TF_FLAG_Type">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Indicates that this ACCriteria needs
+                        to evaluate to false to be met.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+</xsd:schema>
