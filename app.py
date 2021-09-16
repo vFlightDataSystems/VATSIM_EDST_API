@@ -9,7 +9,7 @@ from blueprints.prefroute_bp import prefroute_blueprint
 from lib.lib import cache
 from mongo_client import get_fd_mongo_client, close_fd_mongo_client, get_nav_mongo_client, close_nav_mongo_client
 
-PREFIX = '/fdp'
+PREFIX = '/backend'
 
 cache_config = {
     "DEBUG": True,          # some Flask specific configs
