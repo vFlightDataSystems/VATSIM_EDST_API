@@ -1,9 +1,13 @@
 import json.decoder
 import re
+from collections import defaultdict
+
 from pymongo import MongoClient
 import requests
 from flask import g
 from flask_caching import Cache
+
+import lib.adr_lib
 
 cache = Cache()
 clean_route_pattern = re.compile(r'/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
@@ -33,7 +37,7 @@ def get_nat_types(aircraft: str) -> list:
     :return: aircraft nat types
     """
     client: MongoClient = g.mongo_fd_client
-    nat_list = list(client.flightdata.nat_types.find({"aircraft_type": aircraft}))
+    nat_list = list(client.flightdata.nat_types.find({"aircraft_type": aircraft}, {'_id': False}))
     return [e['nat'] for e in nat_list]
 
 
@@ -44,8 +48,8 @@ def get_airway(airway: str):
     :return: list of all fixes in the airway (order matters!)
     """
     client = g.mongo_nav_client
-    waypoints = list(client.navdata.airways.find(
-        {"airway": {"$in": [airway]}}))
+    waypoints = list(sorted(client.navdata.airways.find(
+        {"airway": {"$in": [airway]}}, {'_id': False}), key=lambda x: int(x['sequence'])))
     return waypoints
 
 
@@ -121,22 +125,46 @@ def get_adar(dep: str, dest: str) -> list:
     return adar_list
 
 
-@cache.cached(timeout=15, key_prefix='all_flightplans')
+def amend_flightplan(fp: ObjectDict):
+    if fp.departure and fp.route:
+        split_route = fp.route.split()
+        adr_list = lib.adr_lib.get_best_adr(fp.departure, split_route, int(fp.altitude), fp.aircraft_short)
+        adar_list = get_adar(fp.departure, fp.arrival)
+        fp.amendments = dict()
+        fp.amendments['adr'] = [lib.adr_lib.amend_adr(split_route, expand_route(split_route), adr) for adr in adr_list]
+        fp.amendments['adar'] = adar_list
+        fp.amendments['faa_prd'] = get_faa_prd(fp.departure, fp.arrival)
+    return fp
+
+
+@cache.cached(timeout=15, key_prefix='all_pilots')
 def get_all_pilots():
     response = requests.get('https://data.vatsim.net/v3/vatsim-data.json')
     try:
-        flightplans = response.json()['pilots']
-        return flightplans
+        pilots = response.json()['pilots']
+        return pilots
     except json.decoder.JSONDecodeError:
         return None
 
 
+@cache.cached(timeout=15, key_prefix='all_flightplans')
+def get_all_flightplans() -> defaultdict:
+    flightplans = defaultdict(None)
+    for pilot in get_all_pilots():
+        if flightplan := pilot['flight_plan']:
+            fp = ObjectDict(flightplan)
+            fp.route = clean_route(fp.route, fp.departure, fp.arrival)
+            flightplans[pilot['callsign']] = fp
+    return flightplans
+
+
+@cache.cached(timeout=15, key_prefix='all_amended_flightplans')
+def get_all_amended_flightplans() -> defaultdict:
+    flightplans = get_all_flightplans()
+    for callsign, fp in flightplans.items():
+        flightplans[callsign] = amend_flightplan(fp)
+    return flightplans
+
+
 def get_flightplan(callsign: str):
-    pilots = get_all_pilots()
-    callsign_pilot = next(filter(lambda x: x['callsign'] == callsign.upper(), pilots), None)
-    if callsign_pilot:
-        fp = ObjectDict(callsign_pilot['flight_plan'])
-        fp.route = clean_route(fp.route, fp.departure, fp.arrival)
-        return fp
-    else:
-        return None
+    return get_all_flightplans()[callsign]
