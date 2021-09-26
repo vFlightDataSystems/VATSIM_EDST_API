@@ -1,7 +1,7 @@
 from flask import g
 from pymongo import MongoClient
 
-from lib.lib import expand_route, get_nat_types
+import lib.lib
 
 
 def slice_adr(route: list, expanded_route: list, tfix: str) -> list:
@@ -33,7 +33,7 @@ def amend_adr(route: list, expanded_route: list, adr: dict) -> dict:
     if adr_route == route[:len(adr_route)]:
         adr_route = []
     else:
-        expanded_adr = expand_route(adr_route, airways=adr['airways'])
+        expanded_adr = lib.lib.expand_route(adr_route, airways=adr['airways'])
         tfixes = adr['tfixes']
         fixes = [e['tfix'] for e in tfixes]
         info_dict = {e['tfix']: e['info'] for e in tfixes}
@@ -78,13 +78,13 @@ def amend_adr(route: list, expanded_route: list, adr: dict) -> dict:
 def get_best_adr(dep: str, route: list, altitude: int, aircraft: str, equipment=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
     client: MongoClient = g.mongo_fd_client
-    nat_list = get_nat_types(aircraft) + ['NATALL']
+    nat_list = lib.lib.get_nat_types(aircraft) + ['NATALL']
     adr_list = list(client.flightdata.adr.find(
         {"dep": {"$in": [dep]},
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
-         }))
+         }, {'_id': False}))
     eligible_adr = []
-    expanded_route = expand_route(route)
+    expanded_route = lib.lib.expand_route(route)
     for adr in adr_list:
         if (int(adr['min_alt']) < altitude < int(adr['top_alt'])) or altitude == 0:
             for tfix in adr['tfixes']:

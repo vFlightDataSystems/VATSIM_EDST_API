@@ -1,6 +1,6 @@
 from flask import g, Blueprint, request, jsonify
 from pymongo import MongoClient
-from lib.adar_lib import get_best_adar
+import lib.adar_lib
 
 adar_blueprint = Blueprint('adar', __name__)
 
@@ -32,7 +32,7 @@ def _get_adar():
             route_groups = None
 
     if dep and dest:
-        adar = get_best_adar(client, altitude, dep, dest, aircraft, route_groups)
+        adar = lib.adar_lib.get_best_adar(client, altitude, dep, dest, aircraft, route_groups)
         return jsonify(adar)
     else:
         return '', 204
