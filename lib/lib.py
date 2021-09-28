@@ -8,6 +8,7 @@ from flask import g
 from flask_caching import Cache
 
 import lib.adr_lib
+import config
 
 cache = Cache()
 clean_route_pattern = re.compile(r'/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
@@ -139,7 +140,7 @@ def amend_flightplan(fp: ObjectDict):
 
 @cache.cached(timeout=15, key_prefix='all_pilots')
 def get_all_pilots():
-    response = requests.get('https://data.vatsim.net/v3/vatsim-data.json')
+    response = requests.get(config.VATSIM_DATA_URL)
     try:
         pilots = response.json()['pilots']
         return pilots
