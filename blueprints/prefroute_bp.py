@@ -26,7 +26,8 @@ def _get_prefroute(dep: str, dest: str):
 
     client: MongoClient = g.mongo_fd_client
 
-    adar_list = list(client.flightdata.adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
+    adar_list = list(
+        client.flightdata.adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
     for adar in adar_list:
         adar['source'] = 'adar'
 
