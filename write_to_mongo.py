@@ -54,7 +54,6 @@ def write_nattypes(filename, dbname):
                 rows.append({'aircraft_type': aircraft_type, 'nat': nat_type, 'owner': owner})
     client: MongoClient = get_fd_mongo_client()
     db = client[dbname]
-    print(db)
     col = db['nat_types']
     col.insert_many(rows)
     client.close()
@@ -95,7 +94,6 @@ def write_adar(filename, dbname, dp_data, star_data):
                 star_id = ''.join([s for s in star if not s.isdigit()])
                 if star_id in star_data.keys():
                     if not star == star_data[star_id]['procedure']:
-                        print(star)
                         current_star = star_data[star_id]['procedure']
                         row['star'] = current_star
                         row['route'] = row['route'].replace(star, current_star)
@@ -106,7 +104,6 @@ def write_adar(filename, dbname, dp_data, star_data):
                 dp_id = ''.join([s for s in dp if not s.isdigit()])
                 if dp_id in dp_data.keys():
                     if not dp == dp_data[dp_id]['procedure']:
-                        print(dp)
                         current_dp = dp_data[dp_id]['procedure']
                         row['dp'] = current_dp
                         row['route'] = row['route'].replace(dp, current_dp)
@@ -161,7 +158,6 @@ def parse_adr(filename, dbname, dp_data):
                 dp_id = ''.join([s for s in dp if not s.isdigit()])
                 if dp_id in dp_data.keys():
                     if not dp == dp_data[dp_id]['procedure']:
-                        print(dp)
                         current_dp = dp_data[dp_id]['procedure']
                         row['dp'] = current_dp
                         row['route'] = row['route'].replace(dp, current_dp)
@@ -202,14 +198,16 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
     with open(stardp_filename, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            row['airports'] = defaultdict(list)
+            airports = defaultdict(list)
             procedure = row['procedure']
             for apt, v in cifp_data.items():
                 for rwy, rwy_procs in v.items():
                     if procedure in rwy_procs:
-                        row['airports'][apt].append(rwy)
+                        airports[apt].append(rwy)
             del row['id']
             del row['proc_id']
+            row['airports'] = [{'airport': airport, 'runways': airports[airport]} for airport in airports.keys()]
+            row['transitions'] = row['transitions'].split(',')
             rows.append(row)
 
     client: MongoClient = get_nav_mongo_client()
@@ -249,15 +247,16 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
         reader = csv.DictReader(f)
         for row in reader:
             row['runways'] = []
-            row['procedures'] = defaultdict(list)
+            row_procedures = defaultdict(list)
             try:
                 code = row['icao'] or row['code']
                 for rwy, procedures in cifp_data[code].items():
                     row['runways'].append(rwy)
                     for procedure in procedures:
-                        row['procedures'][procedure].append(rwy)
+                        row_procedures[procedure].append(rwy)
             except Exception as e:
                 print(row, e)
+            row['procedures'] = [{'procedure': key, 'runways': val} for key, val in row_procedures.items()]
             del row['id']
             rows.append(row)
 
@@ -297,7 +296,7 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
 if __name__ == '__main__':
     write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
                   FIXES_FILENAME, CIFP_DATA_FILENAME)
-    write_nattypes(NATTYPE_FILENAME, fd_db_name)
+    # write_nattypes(NATTYPE_FILENAME, fd_db_name)
     # with open(STARDP_FILENAME, 'r') as f:
     #     reader = csv.DictReader(f)
     #     stardp_data = {e['proc_id']: e for e in reader}
