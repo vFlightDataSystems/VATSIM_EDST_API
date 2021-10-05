@@ -109,7 +109,6 @@ def write_adar(filename, dbname, dp_data, star_data):
                         row['route'] = row['route'].replace(dp, current_dp)
                 else:
                     print(f'{dp} not in nasr!')
-            row['route'] = row['route'].split()
             rows.append(row)
     client: MongoClient = get_fd_mongo_client()
     db = client[dbname]
@@ -164,7 +163,6 @@ def parse_adr(filename, dbname, dp_data):
                 else:
                     print(f'{dp} not in nasr!')
             if row['route']:
-                row['route'] = row['route'].split()
                 rows.append(row)
     client: MongoClient = get_fd_mongo_client()
     db = client[dbname]
@@ -179,7 +177,6 @@ def write_faa_prd(filename, dbname):
         reader = csv.DictReader(f)
         for row in reader:
             del row['id']
-            row['route'] = row['route'].split()
             row['airways'] = row['airways'].split()
             rows.append(row)
     client: MongoClient = get_fd_mongo_client()
@@ -294,18 +291,18 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
 
 
 if __name__ == '__main__':
-    write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
-                  FIXES_FILENAME, CIFP_DATA_FILENAME)
-    # write_nattypes(NATTYPE_FILENAME, fd_db_name)
-    # with open(STARDP_FILENAME, 'r') as f:
-    #     reader = csv.DictReader(f)
-    #     stardp_data = {e['proc_id']: e for e in reader}
-    # dp_data = {k: v for k, v in stardp_data.items() if v['type'] == 'DP'}
-    # star_data = {k: v for k, v in stardp_data.items() if v['type'] == 'STAR'}
-    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-    #     path = Path(filepath)
-    #     if path.stem[:3] == 'adr':
-    #         parse_adr(filepath, fd_db_name, dp_data)
-    #     if path.stem[:4] == 'adar':
-    #         write_adar(filepath, fd_db_name, dp_data, star_data)
-    # write_faa_prd(FAA_PRD_FILENAME, fd_db_name)
+    # write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
+    #               FIXES_FILENAME, CIFP_DATA_FILENAME)
+    write_nattypes(NATTYPE_FILENAME, fd_db_name)
+    with open(STARDP_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        stardp_data = {e['proc_id']: e for e in reader}
+    dp_data = {k: v for k, v in stardp_data.items() if v['type'] == 'DP'}
+    star_data = {k: v for k, v in stardp_data.items() if v['type'] == 'STAR'}
+    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+        path = Path(filepath)
+        if path.stem[:3] == 'adr':
+            parse_adr(filepath, fd_db_name, dp_data)
+        if path.stem[:4] == 'adar':
+            write_adar(filepath, fd_db_name, dp_data, star_data)
+    write_faa_prd(FAA_PRD_FILENAME, fd_db_name)

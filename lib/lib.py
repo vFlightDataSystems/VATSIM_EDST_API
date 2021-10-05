@@ -14,7 +14,7 @@ cache = Cache()
 clean_route_pattern = re.compile(r'/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
 
 
-class ObjectDict(dict):
+class ObjDict(dict):
     def __getattr__(self, name):
         if name in self:
             return self[name]
@@ -65,13 +65,14 @@ def get_apt_info(apt: str) -> dict:
     return {}
 
 
-def expand_route(route: list, airways=None) -> list:
+def expand_route(route: str, airways=None) -> list:
     """
 
     :param route:
     :param airways:
     :return:
     """
+    route = route.split()
     if airways is None:
         airways = []
     new_route = []
@@ -126,14 +127,13 @@ def get_adar(dep: str, dest: str) -> list:
     return adar_list
 
 
-def amend_flightplan(fp: ObjectDict):
+def amend_flightplan(fp: ObjDict):
     if fp.departure and fp.route:
-        split_route = fp.route.split()
-        adr_list = lib.adr_lib.get_best_adr(fp.departure, split_route, int(fp.altitude), fp.aircraft_short)
-        adar_list = get_adar(fp.departure, fp.arrival)
+        adr_list = lib.adr_lib.get_eligible_adr(fp)
         fp.amendments = dict()
-        fp.amendments['adr'] = [lib.adr_lib.amend_adr(split_route, expand_route(split_route), adr) for adr in adr_list]
-        fp.amendments['adar'] = adar_list
+        adr_amendments = [lib.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
+        fp.amendments['adr'] = [adr for adr in adr_amendments if adr['adr_amendment'] != '']
+        fp.amendments['adar'] = get_adar(fp.departure, fp.arrival)
         fp.amendments['faa_prd'] = get_faa_prd(fp.departure, fp.arrival)
     return fp
 
@@ -153,7 +153,7 @@ def get_all_flightplans() -> defaultdict:
     flightplans = defaultdict(None)
     for pilot in get_all_pilots():
         if flightplan := pilot['flight_plan']:
-            fp = ObjectDict(flightplan)
+            fp = ObjDict(flightplan)
             fp.route = clean_route(fp.route, fp.departure, fp.arrival)
             flightplans[pilot['callsign']] = fp
     return flightplans

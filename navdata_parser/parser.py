@@ -247,11 +247,11 @@ def get_route_info(aircraft, alt, route_type):
 
 
 def parse_prefroutes():
-    procedures = {p['procedure']: p for p in parse_stardp()}
+    procedures = {p['proc_id']: p for p in parse_stardp()}
     prefroute_rows = []
     with open(PREFROUTES_FILENAME, 'r') as f:
         entry = {}
-        route_entry = {}
+        row = {}
         route = []
         airways = []
         for line in f.readlines():
@@ -260,10 +260,9 @@ def parse_prefroutes():
             route_type = line[14:17].strip()
             if line[0:4] == 'PFR1':
                 if entry:
-                    route = ' '.join(route).strip()
-                    route_entry['route'] = route
-                    route_entry['airways'] = ' '.join(airways).strip()
-                    prefroute_rows.append(route_entry)
+                    row['route'] = ' '.join(route).strip()
+                    row['airways'] = ' '.join(airways).strip()
+                    prefroute_rows.append(row)
                 eid = uuid.uuid4()
                 route_id = uuid.uuid4()
                 route = []
@@ -271,7 +270,7 @@ def parse_prefroutes():
                 alt = line[124:164].strip()
                 aircraft = line[164:214].strip()
                 min_alt, top_alt, rnav = get_route_info(aircraft, alt, route_type)
-                route_entry = {
+                row = {
                     'id': route_id,
                     'dep': dep,
                     'dest': dest,
@@ -291,14 +290,14 @@ def parse_prefroutes():
                     segments = segment.split()
                     if len(segments) > 1:
                         if '(RNAV)' in segments:
-                            route_entry['rnav'] = "required"
+                            row['rnav'] = "required"
                     name = ' '.join(s for s in segments if s not in ['(RNAV)', '(CANADIAN)']).strip()
                     try:
                         if seg_type == 'AIRWAY':
                             airways.append(segment)
                         else:
-                            segment = procedures[name]
-                            route_entry[seg_type.lower()] = segment
+                            segment = procedures[name]['procedure']
+                            row[seg_type.lower()] = segment
                     except KeyError:
                         pass
                 route.append(segment)
