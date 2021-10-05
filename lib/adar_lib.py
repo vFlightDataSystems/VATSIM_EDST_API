@@ -1,17 +1,22 @@
 from pymongo import MongoClient
+from flask import g
+
+import lib.lib
 
 
-def get_best_adar(client: MongoClient, dep: str, dest: str, altitude: int, aircraft: str, equipment: list,
-                  route_groups: set) -> list:
+def check_adar_is_valid(adar, altitude, equipment=None):
+    return int(adar['min_alt']) <= altitude <= int(adar['top_alt'])
+
+
+def get_eligible_adar(fp) -> list:
     """
 
-    :param client:
-    :param altitude:
-    :param dep:
-    :param dest:
-    :param aircraft:
-    :param equipment:
-    :param route_groups:
     :return:
     """
-    return []
+    client: MongoClient = g.mongo_fd_client
+    nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
+    adar_list = client.flightdata.adar.find(
+        {'dep': fp.departure, 'dest': fp.destination, 'aircraft_class': {'$elemMatch': {'$in': nat_list}}},
+        {'_id': False})
+    return [adar for adar in adar_list if
+            check_adar_is_valid(adar, fp.altitude)]

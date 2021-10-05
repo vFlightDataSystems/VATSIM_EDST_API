@@ -7,7 +7,7 @@ from blueprints.flightplans_bp import flightplans_blueprint
 from blueprints.navdata_bp import navdata_blueprint
 from blueprints.prefroute_bp import prefroute_blueprint
 from lib.lib import cache
-from mongo_client import get_fd_mongo_client, close_fd_mongo_client, get_nav_mongo_client, close_nav_mongo_client
+import mongo_client
 
 PREFIX = '/backend'
 
@@ -35,13 +35,13 @@ def register_extensions(app):
 
     @app.before_request
     def _get_mongo_client():
-        get_fd_mongo_client()
-        get_nav_mongo_client()
+        mongo_client.get_fd_mongo_client()
+        mongo_client.get_nav_mongo_client()
 
     @app.after_request
     def _close_mongo_client(response):
-        close_fd_mongo_client()
-        close_nav_mongo_client()
+        mongo_client.close_fd_mongo_client()
+        mongo_client.close_nav_mongo_client()
         return response
 
 
