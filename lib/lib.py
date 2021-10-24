@@ -11,7 +11,7 @@ import lib.adr_lib
 import config
 
 cache = Cache()
-clean_route_pattern = re.compile(r'/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
+clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
 
 
 class ObjDict(dict):
@@ -65,7 +65,7 @@ def get_apt_info(apt: str) -> dict:
     return {}
 
 
-def expand_route(route: str, airways=None) -> list:
+def expand_route(route: str, airways=None) -> str:
     """
 
     :param route:
@@ -97,7 +97,7 @@ def expand_route(route: str, airways=None) -> list:
         else:
             new_route.append(segment)
 
-    return new_route
+    return ' '.join(new_route)
 
 
 def clean_route(route, dep='', dest=''):

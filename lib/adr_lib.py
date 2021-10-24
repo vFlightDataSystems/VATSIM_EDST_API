@@ -4,22 +4,19 @@ from pymongo import MongoClient
 import lib.lib
 
 
-def slice_adr(route: str, tfix: str) -> list:
+def slice_adr(route: str, tfix: str) -> str:
     """
     adjust a given adr which expands to expanded_route and have it end at a given tfix
     :param route: adr
-    :param expanded_route: expanded adr
     :param tfix: transition fix
     :return: adr upto the transition fix
     """
     expanded_route = lib.lib.expand_route(route)
     route = route.split()
     if route[-1] == tfix:
-        return route[:-1]
+        return ' '.join(route[:-1])
     index = expanded_route.index(tfix)
-    common_fixes = [e for e in route if e in expanded_route[:index]]
-    slice_index = route.index(common_fixes[-1])
-    return route[:slice_index]
+    return ' '.join(route[:index])
 
 
 def amend_adr(route: str, adr: dict) -> dict:
@@ -32,13 +29,13 @@ def amend_adr(route: str, adr: dict) -> dict:
     adr_route = adr['route']
     # if adr matches initial route, there is nothing to do.
     if adr_route == route[:len(adr_route)]:
-        adr_route = []
+        adr_route = ''
     else:
         expanded_adr = lib.lib.expand_route(adr_route, airways=adr['airways'])
         tfix_list = adr['tfixes']
         tfixes = [e['tfix'] for e in tfix_list]
         info_dict = {e['tfix']: e['info'] for e in tfix_list}
-        expanded_route = lib.lib.expand_route(route)
+        expanded_route = lib.lib.expand_route(route).split()
         for fix in reversed(expanded_route):
             # find farthest tfix which triggered the ADR
             if fix in tfixes:
@@ -49,7 +46,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                     if adr_route != route[:len(adr_route)]:
                         route = route[index:]
                     else:
-                        adr_route = []
+                        adr_route = ''
                     break
                 elif 'Implicit' in info:
                     index = expanded_route.index(fix)
