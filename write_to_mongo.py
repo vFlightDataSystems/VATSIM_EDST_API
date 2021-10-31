@@ -252,7 +252,7 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
                     for procedure in procedures:
                         row_procedures[procedure].append(rwy)
             except Exception as e:
-                print(row, e)
+                pass # print(row, e)
             row['procedures'] = [{'procedure': key, 'runways': val} for key, val in row_procedures.items()]
             del row['id']
             rows.append(row)
@@ -291,8 +291,8 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
 
 
 if __name__ == '__main__':
-    # write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
-    #               FIXES_FILENAME, CIFP_DATA_FILENAME)
+    write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
+                  FIXES_FILENAME, CIFP_DATA_FILENAME)
     write_nattypes(NATTYPE_FILENAME, fd_db_name)
     with open(STARDP_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
