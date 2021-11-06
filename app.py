@@ -1,5 +1,5 @@
 from flask import Flask
-from flask_cors import CORS
+# from flask_cors import CORS
 
 from blueprints.adar_bp import adar_blueprint
 from blueprints.adr_bp import adr_blueprint
@@ -21,7 +21,7 @@ cache_config = {
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    # CORS(app)
     register_extensions(app)
     return app
 
