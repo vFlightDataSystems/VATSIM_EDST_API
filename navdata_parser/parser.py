@@ -6,8 +6,8 @@ from collections import defaultdict
 
 from dms2dec.dms_convert import dms2dec
 
-NASR_DIR = '28DaySubscription_Effective_2021-08-12'
-CIFP_FILENAME = 'CIFP_210909/FAACIFP18'
+NASR_DIR = '28DaySubscription_Effective_2021-11-04'
+CIFP_FILENAME = 'CIFP_211104/FAACIFP18'
 
 NAVDATA_FILENAME = NASR_DIR + '/NAV.txt'
 FIXDATA_FILENAME = NASR_DIR + '/FIX.txt'

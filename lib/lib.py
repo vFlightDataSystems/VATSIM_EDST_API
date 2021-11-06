@@ -132,9 +132,19 @@ def amend_flightplan(fp: ObjDict):
         adr_list = lib.adr_lib.get_eligible_adr(fp)
         fp.amendments = dict()
         adr_amendments = [lib.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
-        fp.amendments['adr'] = [adr for adr in adr_amendments if adr['adr_amendment'] != '']
-        fp.amendments['adar'] = get_adar(fp.departure, fp.arrival)
+        fp.amendments['adr'] = sorted([adr for adr in adr_amendments], key=lambda x: x['order'], reverse=True)
+        fp.amendments['adar'] = sorted(get_adar(fp.departure, fp.arrival), key=lambda x: x['order'])
         fp.amendments['faa_prd'] = get_faa_prd(fp.departure, fp.arrival)
+        if fp.amendments['adar']:
+            fp.best_route = fp.amendments['adar'][0]
+        elif fp.amendments['adr']:
+            adr = fp.amendments['adr'][0]
+            if adr['adr_amendment']:
+                fp.best_route = f"+{adr['adr_amendment']}+ {adr['route']}"
+            else:
+                fp.best_route = fp.route
+        else:
+            fp.best_route = fp.route
     return fp
 
 
