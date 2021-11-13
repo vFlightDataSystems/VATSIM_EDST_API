@@ -128,8 +128,9 @@ def get_adar(dep: str, dest: str) -> list:
 
 
 def amend_flightplan(fp: ObjDict, active_runways=None):
+    departing_runways = active_runways['departing'] if active_runways else None
     if fp.departure and fp.route:
-        adr_list = lib.adr_lib.get_eligible_adr(fp)
+        adr_list = lib.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
         fp.amendments = dict()
         adr_amendments = [lib.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
         fp.amendments['adr'] = sorted([adr for adr in adr_amendments], key=lambda x: x['order'], reverse=True)
@@ -165,6 +166,8 @@ def get_all_flightplans() -> defaultdict:
         if flightplan := pilot['flight_plan']:
             fp = ObjDict(flightplan)
             fp.route = clean_route(fp.route, fp.departure, fp.arrival)
+            if not str(fp.altitude).isnumeric():
+                fp.altitude = int(fp.altitude[2:]) * 100
             flightplans[pilot['callsign']] = fp
     return flightplans
 
