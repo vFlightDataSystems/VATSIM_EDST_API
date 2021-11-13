@@ -76,9 +76,10 @@ def amend_adr(route: str, adr: dict) -> dict:
     }
 
 
-def get_eligible_adr(fp) -> list:
+def get_eligible_adr(fp, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
     client: MongoClient = g.mongo_fd_client
+    nav_client: MongoClient = g.mongo_nav_client
     filed_alt = int(fp.altitude)
     nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adr_list = list(client.flightdata.adr.find(
@@ -87,7 +88,18 @@ def get_eligible_adr(fp) -> list:
          }, {'_id': False}))
     eligible_adr = []
     expanded_route = lib.lib.expand_route(fp.route).split()
+    dep_procedures = filter(
+        lambda p: p['airports']['airport'] == fp.departure and set(p['airports']['runway']).intersection(
+            set(departing_runways)),
+        list(nav_client.navdata.procedures.find(
+            {'airports': {'$elemMatch': {'airport': fp.departure}}}, {'_id': False}
+        )))
     for adr in adr_list:
+        # procedure is a SID if last character is a digit
+        procedure = adr['route'][0]
+        if procedure[-1].isdigit():
+            if procedure not in dep_procedures:
+                continue
         if (int(adr['min_alt']) <= filed_alt <= int(adr['top_alt'])) or filed_alt == 0:
             for tfix in adr['tfixes']:
                 if (('Explicit' in tfix['info'] and
