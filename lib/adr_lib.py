@@ -88,12 +88,11 @@ def get_eligible_adr(fp, departing_runways=None) -> list:
          }, {'_id': False}))
     eligible_adr = []
     expanded_route = lib.lib.expand_route(fp.route).split()
-    dep_procedures = filter(
-        lambda p: p['airports']['airport'] == fp.departure and set(p['airports']['runway']).intersection(
-            set(departing_runways)),
-        list(nav_client.navdata.procedures.find(
-            {'airports': {'$elemMatch': {'airport': fp.departure}}}, {'_id': False}
-        )))
+    dep_procedures = [p for p in nav_client.navdata.procedures.find(
+        {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
+    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
+                p['airports']))]
+
     for adr in adr_list:
         # procedure is a SID if last character is a digit
         procedure = adr['route'][0]
