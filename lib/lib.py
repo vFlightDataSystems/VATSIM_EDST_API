@@ -127,7 +127,7 @@ def get_adar(dep: str, dest: str) -> list:
     return adar_list
 
 
-def amend_flightplan(fp: ObjDict):
+def amend_flightplan(fp: ObjDict, active_runways=None):
     if fp.departure and fp.route:
         adr_list = lib.adr_lib.get_eligible_adr(fp)
         fp.amendments = dict()
