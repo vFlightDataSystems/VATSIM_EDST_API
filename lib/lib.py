@@ -167,7 +167,7 @@ def get_all_flightplans() -> defaultdict:
             fp = ObjDict(flightplan)
             fp.route = clean_route(fp.route, fp.departure, fp.arrival)
             if not str(fp.altitude).isnumeric():
-                fp.altitude = int(fp.altitude[2:]) * 100
+                fp.altitude = int(fp.altitude[2:] or 0) * 100
             flightplans[pilot['callsign']] = fp
     return flightplans
 
