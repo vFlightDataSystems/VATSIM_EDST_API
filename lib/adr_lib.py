@@ -87,7 +87,7 @@ def get_eligible_adr(fp, departing_runways=None) -> list:
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
          }, {'_id': False}))
     eligible_adr = []
-    expanded_route = lib.lib.expand_route(fp.route).split()
+    expanded_route = lib.lib.expand_route(' '.join(fp.route.split()[:7])).split()
     dep_procedures = [p for p in nav_client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
     ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
