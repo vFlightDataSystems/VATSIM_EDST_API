@@ -95,14 +95,12 @@ def get_eligible_adr(fp, departing_runways=None) -> list:
     dep_procedures = [p for p in nav_client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
     ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
-                p['airports']))]
-
+                    p['airports']))]
     for adr in adr_list:
-        # procedure is a SID if last character is a digit
-        procedure = adr['route'][0]
-        if procedure[-1].isdigit():
-            if procedure not in dep_procedures:
-                continue
+        dp = adr['dp']
+        # check if adr is valid in current configuration
+        if departing_runways and dp and not any(p['procedure'] == dp for p in dep_procedures):
+            continue
         if (int(adr['min_alt']) <= filed_alt <= int(adr['top_alt'])) or filed_alt == 0:
             for tfix in adr['tfixes']:
                 if (('Explicit' in tfix['info'] and
