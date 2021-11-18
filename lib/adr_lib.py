@@ -11,12 +11,16 @@ def slice_adr(route: str, tfix: str) -> str:
     :param tfix: transition fix
     :return: adr upto the transition fix
     """
+    if tfix in route:
+        return route[:route.index(tfix)]
+
     expanded_route = lib.lib.expand_route(route)
-    route = route.split()
-    if route[-1] == tfix:
-        return ' '.join(route[:-1])
-    index = expanded_route.index(tfix)
-    return ' '.join(route[:index])
+    split_route = route.split()
+
+    expanded_route = expanded_route[:expanded_route.index(tfix)]
+    # latest fix before tfix before airway starts
+    last_fix = [f for f in expanded_route.split() if f in split_route][-1]
+    return ' '.join(split_route[:split_route.index(last_fix) + 2])
 
 
 def amend_adr(route: str, adr: dict) -> dict:
