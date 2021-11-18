@@ -135,15 +135,16 @@ def amend_flightplan(fp: ObjDict, active_runways=None):
 
     if fp.departure and fp.route:
         adr_list = lib.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
-        fp.amendments = dict()
+        amendments = dict()
         adr_amendments = [lib.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
-        fp.amendments['adr'] = sorted([adr for adr in adr_amendments], key=lambda x: x['order'], reverse=True)
-        fp.amendments['adar'] = sorted(get_adar(fp.departure, fp.arrival), key=lambda x: x['order'])
-        fp.amendments['faa_prd'] = get_faa_prd(fp.departure, fp.arrival)
-        if fp.amendments['adar']:
-            fp.best_route = fp.amendments['adar'][0]
-        elif fp.amendments['adr']:
-            adr = fp.amendments['adr'][0]
+        amendments['adr'] = sorted([adr for adr in adr_amendments], key=lambda x: int(x['order']), reverse=True)
+        # amendments['adar'] = sorted(get_adar(fp.departure, fp.arrival), key=lambda x: int(x['order']), reverse=True)
+        # amendments['faa_prd'] = get_faa_prd(fp.departure, fp.arrival)
+        # pprint.pprint(adr_amendments)
+        # if amendments['adar'] and not any([a['route'] == fp.route for a in amendments['adar']]):
+        #     fp.best_route = amendments['adar'][0]
+        if amendments['adr'] and not any([a['route'] == fp.route for a in amendments['adr']]):
+            adr = amendments['adr'][0]
             if adr['adr_amendment']:
                 fp.best_route = f"+{adr['adr_amendment']}+ {adr['route']}"
             else:
