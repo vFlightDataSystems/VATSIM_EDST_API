@@ -61,7 +61,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                     if adr_route != route[:len(adr_route)]:
                         route = ' '.join(split_route[route_index:])
                     else:
-                        adr_route = []
+                        adr_route = ''
                     break
                 elif info == 'Append':
                     index = expanded_route.index(fix)
@@ -70,10 +70,10 @@ def amend_adr(route: str, adr: dict) -> dict:
                     if adr_route != route[:len(adr_route)]:
                         route = ' '.join(split_route[route_index:])
                     else:
-                        adr_route = []
+                        adr_route = ''
                     break
     return {
-        'adr_amendment': adr_route,
+        'adr_amendment': adr_route.strip(),
         'route': route,
         'order': adr['order'],
         'route_groups': adr['route_groups']
