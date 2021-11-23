@@ -134,6 +134,7 @@ def amend_flightplan(fp: ObjDict, active_runways=None):
     except KeyError:
         departing_runways = None
 
+    fp.amendment = ''
     if fp.departure and fp.route:
         adr_list = lib.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
         adar_list = sorted(lib.adar_lib.get_eligible_adar(fp, departing_runways=departing_runways),
@@ -142,16 +143,13 @@ def amend_flightplan(fp: ObjDict, active_runways=None):
         adr_list = sorted(adr_amendments, key=lambda x: int(x['order']), reverse=True)
         if adar_list:
             if not any([a['route'] == fp.route for a in adar_list]):
-                fp.best_route = f'+{adar_list[0]["route"]}+'
-            fp.best_route = fp.route
+                fp.amendment = f'{adar_list[0]["route"]}'
+                fp.amended_route = f'+{adar_list[0]["route"]}+'
         elif adr_list and not any([a['route'] == fp.route for a in adr_list]):
             adr = adr_list[0]
             if adr['adr_amendment']:
-                fp.best_route = f"+{adr['adr_amendment']}+ {adr['route']}"
-            else:
-                fp.best_route = fp.route
-        else:
-            fp.best_route = fp.route
+                fp.amendment = f"{adr['adr_amendment']}"
+                fp.amended_route = f"+{adr['adr_amendment']}+ {adr['route']}"
     return fp
 
 
