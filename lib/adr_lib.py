@@ -76,7 +76,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                     route_index = split_route.index(route_fix)
                     if adr_route != route[:len(adr_route)]:
                         adr_route += ' ' + split_route[route_index]
-                        route = ' '.join(split_route[route_index+1:])
+                        route = ' '.join(split_route[route_index + 1:])
                     else:
                         adr_route = ''
                     break
@@ -88,35 +88,35 @@ def amend_adr(route: str, adr: dict) -> dict:
     }
 
 
-def get_eligible_adr(fp, departing_runways=None) -> list:
-    # if route empty, do nothing, maybe implement crossing lines in the future
-    client: MongoClient = g.mongo_fd_client
+def check_adr_is_active(adr, fp, departing_runways=None):
     nav_client: MongoClient = g.mongo_nav_client
-    filed_alt = int(fp.altitude)
-    nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
-    adr_list = list(client.flightdata.adr.find(
-        {"dep": fp.departure,
-         "aircraft_class": {"$elemMatch": {"$in": nat_list}}
-         }, {'_id': False}))
-    eligible_adr = []
+    dp = adr['dp']
+    # check if adr is valid in current configuration
     expanded_route = lib.lib.expand_route(' '.join(fp.route.split()[:7])).split()
     dep_procedures = [p for p in nav_client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
     ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
                     p['airports']))]
-    for adr in adr_list:
-        dp = adr['dp']
-        # check if adr is valid in current configuration
-        if departing_runways and dp and not any(p['procedure'] == dp for p in dep_procedures):
-            continue
-        if (int(adr['min_alt']) <= filed_alt <= int(adr['top_alt'])) or filed_alt == 0:
-            for tfix in adr['tfixes']:
-                if (('Explicit' in tfix['info'] and
-                     tfix['tfix'] in fp.route.split()) or
-                        ('Implicit' in tfix['info'] and
-                         tfix['tfix'] in expanded_route) or
-                        (tfix['tfix'] in expanded_route and
-                         tfix['info'] == 'Append')):
-                    eligible_adr.append(adr)
-                    break
-    return eligible_adr
+    if departing_runways and dp and not any(p['procedure'] == dp for p in dep_procedures):
+        return False
+    if (int(adr['min_alt']) <= int(fp.altitude) <= int(adr['top_alt'])) or int(fp.altitude) == 0:
+        for tfix in adr['tfixes']:
+            if (('Explicit' in tfix['info'] and
+                 tfix['tfix'] in fp.route.split()) or
+                    ('Implicit' in tfix['info'] and
+                     tfix['tfix'] in expanded_route) or
+                    (tfix['tfix'] in expanded_route and
+                     tfix['info'] == 'Append')):
+                return True
+
+
+def get_eligible_adr(fp, departing_runways=None) -> list:
+    # if route empty, do nothing, maybe implement crossing lines in the future
+    client: MongoClient = g.mongo_fd_client
+    nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
+    adr_list = list(client.flightdata.adr.find(
+        {"dep": fp.departure,
+         "aircraft_class": {"$elemMatch": {"$in": nat_list}}
+         }, {'_id': False}))
+
+    return [adr for adr in adr_list if check_adr_is_active(adr, fp, departing_runways=departing_runways)]
