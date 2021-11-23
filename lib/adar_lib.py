@@ -4,11 +4,18 @@ from flask import g
 import lib.lib
 
 
-def check_adar_is_valid(adar, altitude, equipment=None):
-    return int(adar['min_alt']) <= altitude <= int(adar['top_alt'])
+def check_adar_is_valid(adar, fp, departing_runways=None):
+    nav_client: MongoClient = g.mongo_nav_client
+    dep_procedures = [p for p in nav_client.navdata.procedures.find(
+        {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
+    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
+                    p['airports']))]
+    valid_alt = not fp.altitude or int(adar['min_alt']) <= int(fp.altitude) <= int(adar['top_alt'])
+    procedure_valid = not adar['dp'] or dep_procedures
+    return valid_alt and procedure_valid
 
 
-def get_eligible_adar(fp) -> list:
+def get_eligible_adar(fp, departing_runways=None) -> list:
     """
 
     :return:
@@ -16,7 +23,7 @@ def get_eligible_adar(fp) -> list:
     client: MongoClient = g.mongo_fd_client
     nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adar_list = client.flightdata.adar.find(
-        {'dep': fp.departure, 'dest': fp.destination, 'aircraft_class': {'$elemMatch': {'$in': nat_list}}},
+        {'dep': fp.departure, 'dest': fp.arrival, 'aircraft_class': {'$elemMatch': {'$in': nat_list}}},
         {'_id': False})
     return [adar for adar in adar_list if
-            check_adar_is_valid(adar, fp.altitude)]
+            check_adar_is_valid(adar, fp, departing_runways)]

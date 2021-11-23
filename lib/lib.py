@@ -8,6 +8,7 @@ from flask import g
 from flask_caching import Cache
 
 import lib.adr_lib
+import lib.adar_lib
 import config
 
 cache = Cache()
@@ -135,16 +136,16 @@ def amend_flightplan(fp: ObjDict, active_runways=None):
 
     if fp.departure and fp.route:
         adr_list = lib.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
-        amendments = dict()
+        adar_list = sorted(lib.adar_lib.get_eligible_adar(fp, departing_runways=departing_runways),
+                           key=lambda x: int(x['order']), reverse=True)
         adr_amendments = [lib.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
-        amendments['adr'] = sorted([adr for adr in adr_amendments], key=lambda x: int(x['order']), reverse=True)
-        # amendments['adar'] = sorted(get_adar(fp.departure, fp.arrival), key=lambda x: int(x['order']), reverse=True)
-        # amendments['faa_prd'] = get_faa_prd(fp.departure, fp.arrival)
-        # pprint.pprint(adr_amendments)
-        # if amendments['adar'] and not any([a['route'] == fp.route for a in amendments['adar']]):
-        #     fp.best_route = amendments['adar'][0]
-        if amendments['adr'] and not any([a['route'] == fp.route for a in amendments['adr']]):
-            adr = amendments['adr'][0]
+        adr_list = sorted(adr_amendments, key=lambda x: int(x['order']), reverse=True)
+        if adar_list:
+            if not any([a['route'] == fp.route for a in adar_list]):
+                fp.best_route = f'+{adar_list[0]["route"]}+'
+            fp.best_route = fp.route
+        elif adr_list and not any([a['route'] == fp.route for a in adr_list]):
+            adr = adr_list[0]
             if adr['adr_amendment']:
                 fp.best_route = f"+{adr['adr_amendment']}+ {adr['route']}"
             else:
