@@ -4,7 +4,7 @@ from flask import g
 import lib.lib
 
 
-def check_adar_is_valid(adar, fp, departing_runways=None):
+def check_adar_is_active(adar, fp, departing_runways=None):
     nav_client: MongoClient = g.mongo_nav_client
     dep_procedures = [p for p in nav_client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
@@ -26,4 +26,4 @@ def get_eligible_adar(fp, departing_runways=None) -> list:
         {'dep': fp.departure, 'dest': fp.arrival, 'aircraft_class': {'$elemMatch': {'$in': nat_list}}},
         {'_id': False})
     return [adar for adar in adar_list if
-            check_adar_is_valid(adar, fp, departing_runways)]
+            check_adar_is_active(adar, fp, departing_runways)]
