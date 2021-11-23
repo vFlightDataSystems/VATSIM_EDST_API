@@ -1,4 +1,5 @@
 import logging
+import pprint
 
 from flask import g
 from pymongo import MongoClient
@@ -74,7 +75,8 @@ def amend_adr(route: str, adr: dict) -> dict:
                     route_fix = [e for e in expanded_route[index:] if e in split_route][0]
                     route_index = split_route.index(route_fix)
                     if adr_route != route[:len(adr_route)]:
-                        route = ' '.join(split_route[route_index:])
+                        adr_route += ' ' + split_route[route_index]
+                        route = ' '.join(split_route[route_index+1:])
                     else:
                         adr_route = ''
                     break
