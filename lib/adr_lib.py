@@ -1,3 +1,5 @@
+import logging
+
 from flask import g
 from pymongo import MongoClient
 
@@ -54,15 +56,19 @@ def amend_adr(route: str, adr: dict) -> dict:
                         adr_route = ''
                     break
                 elif 'Implicit' in info:
-                    index = expanded_route.index(fix)
-                    route_fix = [e for e in expanded_adr[index:] if e in route][-1]
-                    route_index = split_route.index(route_fix)
-                    adr_route = slice_adr(adr_route, fix)
-                    if adr_route != route[:len(adr_route)]:
-                        route = ' '.join(split_route[route_index:])
-                    else:
-                        adr_route = ''
-                    break
+                    try:
+                        index = expanded_route.index(fix)
+                        route_fix = [e for e in expanded_adr[index:] if e in route][-1]
+                        route_index = split_route.index(route_fix)
+                        adr_route = slice_adr(adr_route, fix)
+                        if adr_route != route[:len(adr_route)]:
+                            route = ' '.join(split_route[route_index:])
+                        else:
+                            adr_route = ''
+                        break
+                    except IndexError as e:
+                        logging.Logger(str(e))
+                        pass
                 elif info == 'Append':
                     index = expanded_route.index(fix)
                     route_fix = [e for e in expanded_route[index:] if e in split_route][0]
