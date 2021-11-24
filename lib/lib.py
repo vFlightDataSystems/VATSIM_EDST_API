@@ -145,8 +145,8 @@ def amend_flightplan(fp: ObjDict, active_runways=None):
                 fp.amended_route = f'+{adar_list[0]["route"]}+'
         else:
             adr_list = lib.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
+            adr_list = sorted(adr_list, key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
             adr_amendments = [lib.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
-            adr_amendments = sorted(adr_amendments, key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
 
             if adr_amendments and not any([a['route'] == fp.route for a in adr_amendments]):
                 adr = adr_amendments[0]
