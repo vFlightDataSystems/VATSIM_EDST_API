@@ -87,16 +87,11 @@ def amend_adr(route: str, adr: dict) -> dict:
     }
 
 
-def check_adr_is_active(adr, fp, departing_runways=None):
-    nav_client: MongoClient = g.mongo_nav_client
+def check_adr_is_active(adr, fp, dep_procedures):
     dp = adr['dp']
     # check if adr is valid in current configuration
     expanded_route = lib.lib.expand_route(' '.join(fp.route.split()[:7])).split()
-    dep_procedures = [p for p in nav_client.navdata.procedures.find(
-        {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
-    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
-                    p['airports']))]
-    if departing_runways and dp and not any(p['procedure'] == dp for p in dep_procedures):
+    if dep_procedures and dp and not any(p['procedure'] == dp for p in dep_procedures):
         return False
     if (int(adr['min_alt']) <= int(fp.altitude) <= int(adr['top_alt'])) or int(fp.altitude) == 0:
         for tfix in adr['tfixes']:
@@ -107,15 +102,21 @@ def check_adr_is_active(adr, fp, departing_runways=None):
                     (tfix['tfix'] in expanded_route and
                      tfix['info'] == 'Append')):
                 return True
+    return False
 
 
 def get_eligible_adr(fp, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
     client: MongoClient = g.mongo_fd_client
+    nav_client: MongoClient = g.mongo_nav_client
     nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adr_list = client.flightdata.adr.find(
         {"dep": fp.departure,
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
          }, {'_id': False})
 
-    return [adr for adr in adr_list if check_adr_is_active(adr, fp, departing_runways=departing_runways)]
+    dep_procedures = [p for p in nav_client.navdata.procedures.find(
+        {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
+    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
+                    p['airports']))]
+    return [adr for adr in adr_list if check_adr_is_active(adr, fp, dep_procedures)]
