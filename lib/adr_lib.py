@@ -1,5 +1,4 @@
 import logging
-import pprint
 
 from flask import g
 from pymongo import MongoClient
@@ -114,9 +113,9 @@ def get_eligible_adr(fp, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
     client: MongoClient = g.mongo_fd_client
     nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
-    adr_list = list(client.flightdata.adr.find(
+    adr_list = client.flightdata.adr.find(
         {"dep": fp.departure,
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
-         }, {'_id': False}))
+         }, {'_id': False})
 
     return [adr for adr in adr_list if check_adr_is_active(adr, fp, departing_runways=departing_runways)]
