@@ -87,24 +87,6 @@ def amend_adr(route: str, adr: dict) -> dict:
     }
 
 
-def check_adr_is_active(adr, fp, dep_procedures):
-    dp = adr['dp']
-    # check if adr is valid in current configuration
-    expanded_route = lib.lib.expand_route(' '.join(fp.route.split()[:7])).split()
-    if dep_procedures and dp and not any(p['procedure'] == dp for p in dep_procedures):
-        return False
-    if (int(adr['min_alt']) <= int(fp.altitude) <= int(adr['top_alt'])) or int(fp.altitude) == 0:
-        for tfix in adr['tfixes']:
-            if (('Explicit' in tfix['info'] and
-                 tfix['tfix'] in fp.route.split()) or
-                    ('Implicit' in tfix['info'] and
-                     tfix['tfix'] in expanded_route) or
-                    (tfix['tfix'] in expanded_route and
-                     tfix['info'] == 'Append')):
-                return True
-    return False
-
-
 def get_eligible_adr(fp, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
     client: MongoClient = g.mongo_fd_client
@@ -114,9 +96,27 @@ def get_eligible_adr(fp, departing_runways=None) -> list:
         {"dep": fp.departure,
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
          }, {'_id': False})
-
+    eligible_adr = []
     dep_procedures = [p for p in nav_client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
     ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
                     p['airports']))]
-    return [adr for adr in adr_list if check_adr_is_active(adr, fp, dep_procedures)]
+    alt = int(fp.altitude)
+    split_route = fp.route.split()
+    expanded_route = lib.lib.expand_route(' '.join(fp.route.split()[:7])).split()
+    for adr in adr_list:
+        dp = adr['dp']
+        # check if adr is valid in current configuration
+        if dep_procedures and dp and not any(p['procedure'] == dp for p in dep_procedures):
+            continue
+        if (int(adr['min_alt']) <= alt <= int(adr['top_alt'])) or alt == 0:
+            for tfix in adr['tfixes']:
+                if (('Explicit' in tfix['info'] and
+                     tfix['tfix'] in split_route) or
+                        ('Implicit' in tfix['info'] and
+                         tfix['tfix'] in expanded_route) or
+                        (tfix['tfix'] in expanded_route and
+                         tfix['info'] == 'Append')):
+                    eligible_adr.append(adr)
+                    break
+    return eligible_adr
