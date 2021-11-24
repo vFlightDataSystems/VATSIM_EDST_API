@@ -48,10 +48,11 @@ def amend_adr(route: str, adr: dict) -> dict:
             if fix in tfixes:
                 info = info_dict[fix]
                 if fix in split_route and 'Explicit' in info:
-                    index = split_route.index(fix)
+                    route_index = split_route.index(fix)
                     adr_route = slice_adr(adr_route, fix)
                     if adr_route != route[:len(adr_route)]:
-                        route = ' '.join(split_route[index:])
+                        adr_route += ' ' + split_route[route_index]
+                        route = ' '.join(split_route[route_index+1:])
                     else:
                         adr_route = ''
                     break
