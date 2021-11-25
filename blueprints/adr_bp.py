@@ -1,8 +1,4 @@
-from flask import g, Blueprint, request, jsonify
-from pymongo import MongoClient
-
-import lib.adr_lib
-import lib.lib
+from flask import Blueprint
 
 adr_blueprint = Blueprint('adr', __name__)
 

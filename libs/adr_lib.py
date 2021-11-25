@@ -3,7 +3,8 @@ import logging
 from flask import g
 from pymongo import MongoClient
 
-import lib.lib
+import libs.lib
+from resources.Flightplan import Flightplan
 
 
 def slice_adr(route: str, tfix: str) -> str:
@@ -16,7 +17,7 @@ def slice_adr(route: str, tfix: str) -> str:
     if tfix in route:
         return route[:route.index(tfix)]
 
-    expanded_route = lib.lib.expand_route(route)
+    expanded_route = libs.lib.expand_route(route)
     split_route = route.split()
 
     expanded_route = expanded_route[:expanded_route.index(tfix)]
@@ -38,8 +39,8 @@ def amend_adr(route: str, adr: dict) -> dict:
     if adr_route == route[:len(adr_route)]:
         adr_route = ''
     else:
-        expanded_adr = lib.lib.expand_route(adr_route, airways=adr['airways']).split()
-        expanded_route = lib.lib.expand_route(route).split()
+        expanded_adr = libs.lib.expand_route(adr_route, airways=adr['airways']).split()
+        expanded_route = libs.lib.expand_route(route).split()
         tfix_list = adr['tfixes']
         tfixes = [e['tfix'] for e in tfix_list]
         info_dict = {e['tfix']: e['info'] for e in tfix_list}
@@ -88,11 +89,11 @@ def amend_adr(route: str, adr: dict) -> dict:
     }
 
 
-def get_eligible_adr(fp, departing_runways=None) -> list:
+def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
     client: MongoClient = g.mongo_fd_client
     nav_client: MongoClient = g.mongo_nav_client
-    nat_list = lib.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
+    nat_list = libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adr_list = client.flightdata.adr.find(
         {"dep": fp.departure,
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
@@ -104,7 +105,7 @@ def get_eligible_adr(fp, departing_runways=None) -> list:
                     p['airports']))]
     alt = int(fp.altitude)
     split_route = fp.route.split()
-    expanded_route = lib.lib.expand_route(' '.join(fp.route.split()[:7])).split()
+    expanded_route = libs.lib.expand_route(' '.join(fp.route.split()[:7])).split()
     for adr in adr_list:
         dp = adr['dp']
         # check if adr is valid in current configuration

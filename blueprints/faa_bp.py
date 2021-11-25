@@ -1,7 +1,6 @@
-from flask import g, Blueprint, jsonify
-from pymongo import MongoClient
+from flask import Blueprint, jsonify
 
-from lib.lib import get_nat_types
+from libs.lib import get_nat_types
 
 faa_blueprint = Blueprint('faa', __name__)
 

@@ -1,5 +1,5 @@
 from flask import Flask
-# from flask_cors import CORS
+from flask_cors import CORS
 
 from blueprints.adar_bp import adar_blueprint
 from blueprints.adr_bp import adr_blueprint
@@ -7,7 +7,7 @@ from blueprints.faa_bp import faa_blueprint
 from blueprints.flightplans_bp import flightplans_blueprint
 from blueprints.navdata_bp import navdata_blueprint
 from blueprints.prefroute_bp import prefroute_blueprint
-from lib.lib import cache
+from libs.lib import cache
 import mongo_client
 
 PREFIX = '/backend'
@@ -21,7 +21,7 @@ cache_config = {
 
 def create_app():
     app = Flask(__name__)
-    # CORS(app)
+    CORS(app)
     register_extensions(app)
     return app
 
@@ -49,4 +49,4 @@ def register_extensions(app):
 
 if __name__ == '__main__':
     app = create_app()
-    app.run()
+    app.run(debug=True, use_reloader=True)

@@ -2,34 +2,18 @@ import json.decoder
 import re
 from collections import defaultdict
 
-from pymongo import MongoClient
 import requests
 from flask import g
 from flask_caching import Cache
+from pymongo import MongoClient
 
-import lib.adr_lib
-import lib.adar_lib
 import config
+import libs.adar_lib
+import libs.adr_lib
+from resources.Flightplan import Flightplan
 
 cache = Cache()
 clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
-
-
-class ObjDict(dict):
-    def __getattr__(self, name):
-        if name in self:
-            return self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)
-
-    def __setattr__(self, name, value):
-        self[name] = value
-
-    def __delattr__(self, name):
-        if name in self:
-            del self[name]
-        else:
-            raise AttributeError("No such attribute: " + name)
 
 
 def get_nat_types(aircraft: str) -> list:
@@ -62,7 +46,7 @@ def get_apt_info(apt: str) -> dict:
     :return: information about given airport
     """
     # remove leading 'K' for US airports
-    apt = re.sub(r'^K', '', apt)
+    # apt = re.sub(r'^K', '', apt)
     return {}
 
 
@@ -128,26 +112,25 @@ def get_adar(dep: str, dest: str) -> list:
     return adar_list
 
 
-def amend_flightplan(fp: ObjDict, active_runways=None):
+def amend_flightplan(fp: Flightplan, active_runways=None):
     try:
         departing_runways = active_runways['departing'] if active_runways else None
     except KeyError:
         departing_runways = None
 
-    fp.amendment = ''
     if fp.departure and fp.route:
 
-        adar_list = sorted(lib.adar_lib.get_eligible_adar(fp, departing_runways=departing_runways),
+        adar_list = sorted(libs.adar_lib.get_eligible_adar(fp, departing_runways=departing_runways),
                            key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
         if adar_list:
             if not any([a['route'] == fp.route for a in adar_list]):
                 fp.amendment = f'{adar_list[0]["route"]}'
                 fp.amended_route = f'+{adar_list[0]["route"]}+'
         else:
-            adr_list = lib.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
+            adr_list = libs.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
             adr_list = sorted(adr_list, key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
-            adr_amendments = [lib.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
-
+            adr_amendments = [libs.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
+            # pprint.pprint(adr_list)
             if adr_amendments and not any([a['route'] == fp.route for a in adr_amendments]):
                 adr = adr_amendments[0]
                 if adr['adr_amendment']:
@@ -171,10 +154,7 @@ def get_all_flightplans() -> defaultdict:
     flightplans = defaultdict(None)
     for pilot in get_all_pilots():
         if flightplan := pilot['flight_plan']:
-            fp = ObjDict(flightplan)
-            fp.route = clean_route(fp.route, fp.departure, fp.arrival)
-            if not str(fp.altitude).isnumeric():
-                fp.altitude = int(fp.altitude[2:] or 0) * 100
+            fp = Flightplan(flightplan)
             flightplans[pilot['callsign']] = fp
     return flightplans
 
