@@ -1,6 +1,4 @@
-from flask import Blueprint, request, jsonify
-import lib.adar_lib
-import lib.lib
+from flask import Blueprint
 
 adar_blueprint = Blueprint('adar', __name__)
 
