@@ -10,3 +10,4 @@ class AdaptationProfile:
         self.dep_freq_options = profile['dep_freq_options'] if 'dep_freq_options' in profile.keys() else []
         self.facility = profile['facility'] if 'facility' in profile.keys() else ''
         self.profile_name = profile['profile_name'] if 'profile_name' in profile.keys() else ''
+        self.username = profile['username'] if 'username' in profile.keys() else ''

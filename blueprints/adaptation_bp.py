@@ -22,7 +22,7 @@ def _close_adapt_client(response):
 def _request_profile():
     profile = AdaptationProfile(request.get_json())
 
-    if profile.facility and profile.profile_name:
+    if profile.facility and profile.profile_name and profile.username:
         client: MongoClient = g.mongo_adapt_client
         client.adaptationProfiles.requests.insert(vars(profile))
         return Response(status=200)
