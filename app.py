@@ -1,6 +1,7 @@
 from flask import Flask
-# from flask_cors import CORS
+from flask_cors import CORS
 
+from blueprints.adaptation_bp import adaptation_blueprint
 from blueprints.adar_bp import adar_blueprint
 from blueprints.adr_bp import adr_blueprint
 from blueprints.faa_bp import faa_blueprint
@@ -21,7 +22,7 @@ cache_config = {
 
 def create_app():
     app = Flask(__name__)
-    # CORS(app)
+    CORS(app)
     register_extensions(app)
     return app
 
@@ -34,14 +35,15 @@ def register_extensions(app):
     app.register_blueprint(faa_blueprint, url_prefix=f'{PREFIX}/faa')
     app.register_blueprint(flightplans_blueprint, url_prefix=f'{PREFIX}/flightplan')
     app.register_blueprint(navdata_blueprint, url_prefix=f'{PREFIX}/navdata')
+    app.register_blueprint(adaptation_blueprint, url_prefix=f'{PREFIX}/adaptation')
 
     @app.before_request
-    def _get_mongo_client():
+    def _get_mongo_clients():
         mongo_client.get_fd_mongo_client()
         mongo_client.get_nav_mongo_client()
 
     @app.after_request
-    def _close_mongo_client(response):
+    def _close_mongo_clients(response):
         mongo_client.close_fd_mongo_client()
         mongo_client.close_nav_mongo_client()
         return response

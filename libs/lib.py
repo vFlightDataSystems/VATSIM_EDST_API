@@ -1,4 +1,5 @@
 import json.decoder
+import pprint
 import re
 from collections import defaultdict
 
@@ -122,7 +123,8 @@ def amend_flightplan(fp: Flightplan, active_runways=None):
 
         adar_list = sorted(libs.adar_lib.get_eligible_adar(fp, departing_runways=departing_runways),
                            key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
-        if adar_list:
+        if adar_list and (any(filter(lambda x: x['ierr'], adar_list)) or not ('/L' in fp.aircraft_faa)):
+            pprint.pprint(adar_list)
             if not any([a['route'] == fp.route for a in adar_list]):
                 fp.amendment = f'{adar_list[0]["route"]}'
                 fp.amended_route = f'+{adar_list[0]["route"]}+'
