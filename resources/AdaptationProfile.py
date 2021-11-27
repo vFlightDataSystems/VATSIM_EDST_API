@@ -9,4 +9,4 @@ class AdaptationProfile:
             if 'expect_cruise_options' in profile.keys() else []
         self.dep_freq_options = profile['dep_freq_options'] if 'dep_freq_options' in profile.keys() else []
         self.facility = profile['facility'] if 'facility' in profile.keys() else ''
-        self.profile_name = profile['name'] if 'name' in profile.keys() else ''
+        self.profile_name = profile['profile_name'] if 'profile_name' in profile.keys() else ''
