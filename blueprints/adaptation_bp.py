@@ -22,7 +22,7 @@ def _close_adapt_client(response):
 def _request_profile():
     profile = AdaptationProfile(request.get_json())
 
-    if facility := profile.facility and profile.profile_name:
+    if profile.facility and profile.profile_name:
         client: MongoClient = g.mongo_adapt_client
         client.adaptationProfiles.requests.insert(vars(profile))
         return Response(status=200)
@@ -33,5 +33,5 @@ def _request_profile():
 @adaptation_blueprint.route('profile/get/<facility>')
 def _get_profile(facility):
     client: MongoClient = g.mongo_adapt_client
-    profile = client.adaptationProfiles[facility].find({}, {'_id': False})
+    profile = list(client.adaptationProfiles[facility].find({}, {'_id': False}))
     return jsonify(profile)
