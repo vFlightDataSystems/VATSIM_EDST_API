@@ -33,5 +33,5 @@ def _request_profile():
 @adaptation_blueprint.route('profile/get/<facility>')
 def _get_profile(facility):
     client: MongoClient = g.mongo_adapt_client
-    profile = list(client.adaptationProfiles[facility].find({}, {'_id': False}))
+    profile = list(client.adaptationProfiles[facility.lower()].find({}, {'_id': False}))
     return jsonify(profile)
