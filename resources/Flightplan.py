@@ -24,3 +24,5 @@ class Flightplan:
 
         self.amendment = None
         self.amended_route = None
+        self.lat = None
+        self.lon = None
