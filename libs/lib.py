@@ -1,5 +1,6 @@
 import json.decoder
 import pprint
+import random
 import re
 from collections import defaultdict
 
@@ -113,7 +114,7 @@ def get_adar(dep: str, dest: str) -> list:
     return adar_list
 
 
-def amend_flightplan(fp: Flightplan, active_runways=None):
+def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
     try:
         departing_runways = active_runways['departing'] if active_runways else None
     except KeyError:
@@ -141,6 +142,28 @@ def amend_flightplan(fp: Flightplan, active_runways=None):
     return fp
 
 
+def assign_beacon(fp: Flightplan):
+    nav_client: MongoClient = g.mongo_nav_client
+    fd_client: MongoClient = g.mongo_fd_client
+    code = None
+    if dep_airport_info := nav_client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False}):
+        arr_airport_info = nav_client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
+        dep_artcc = dep_airport_info['artcc']
+        arr_artcc = arr_airport_info['artcc'] if arr_airport_info else None
+        beacon_ranges = fd_client.flightdata.beacons.find(
+            {'artcc': dep_artcc, 'priority': {'$regex': r'I[PST]?-?\d*', '$options': 'i'}}, {'_id': False}) \
+            if dep_artcc == arr_artcc else fd_client.flightdata.beacons.find(
+            {'artcc': dep_artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
+        codes_in_use = set(int(fp.assigned_transponder) for fp in get_all_flightplans().values())
+        for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
+            start = int(entry['range_start'], 8)
+            end = int(entry['range_end'], 8)
+            if beacon_range := list(set(range(start, end)) - codes_in_use):
+                code = f'{random.choice(beacon_range):o}'.zfill(4)
+                break
+    return code
+
+
 @cache.cached(timeout=15, key_prefix='all_pilots')
 def get_all_pilots():
     response = requests.get(config.VATSIM_DATA_URL)
@@ -157,6 +180,8 @@ def get_all_flightplans() -> defaultdict:
     for pilot in get_all_pilots():
         if flightplan := pilot['flight_plan']:
             fp = Flightplan(flightplan)
+            fp.lat = pilot['latitude']
+            fp.lon = pilot['longitude']
             flightplans[pilot['callsign']] = fp
     return flightplans
 
@@ -169,5 +194,5 @@ def get_all_amended_flightplans() -> defaultdict:
     return flightplans
 
 
-def get_flightplan(callsign: str):
+def get_flightplan(callsign: str) -> Flightplan:
     return get_all_flightplans()[callsign]
