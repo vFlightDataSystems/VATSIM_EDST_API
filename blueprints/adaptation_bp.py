@@ -24,7 +24,8 @@ def _request_profile():
 
     if profile.facility and profile.profile_name and profile.username:
         client: MongoClient = g.mongo_adapt_client
-        client.adaptationProfiles.requests.insert(vars(profile))
+        client.adaptationProfiles[profile.facility.lower()].insert(vars(profile))
+        # client.adaptationProfiles.requests.insert(vars(profile))
         return Response(status=200)
     else:
         return Response(status=204)
