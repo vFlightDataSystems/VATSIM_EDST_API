@@ -146,7 +146,7 @@ def assign_beacon(fp: Flightplan):
     nav_client: MongoClient = g.mongo_nav_client
     fd_client: MongoClient = g.mongo_fd_client
     code = None
-    if dep_airport_info := nav_client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False}):
+    if fp and (dep_airport_info := nav_client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False})):
         arr_airport_info = nav_client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
         dep_artcc = dep_airport_info['artcc']
         arr_artcc = arr_airport_info['artcc'] if arr_airport_info else None
