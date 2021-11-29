@@ -34,6 +34,6 @@ def _get_amended_flightplan(callsign):
 
 
 @flightplans_blueprint.route('beacon/<callsign>')
-def _assign_beacon(callsign):
-    code = libs.lib.assign_beacon(libs.lib.get_flightplan(callsign))
-    return jsonify({'beacon': code})
+def _assign_beacon(callsign: str):
+    code = libs.lib.assign_beacon(libs.lib.get_flightplan(callsign.upper()))
+    return jsonify({'beacon': code, 'callsign': callsign})
