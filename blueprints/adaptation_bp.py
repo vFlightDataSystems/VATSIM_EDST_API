@@ -24,7 +24,10 @@ def _request_profile():
 
     if profile.facility and profile.profile_name and profile.username:
         client: MongoClient = g.mongo_adapt_client
-        client.adaptationProfiles[profile.facility.lower()].insert(vars(profile))
+        # client.adaptationProfiles[profile.facility.lower()].insert(vars(profile))
+        client.adaptationProfiles[profile.facility.lower()].update_one({'profile_name': profile.profile_name},
+                                                                       {'$set': vars(profile)},
+                                                                       upsert=True)
         # client.adaptationProfiles.requests.insert(vars(profile))
         return Response(status=200)
     else:
