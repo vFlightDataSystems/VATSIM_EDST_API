@@ -16,4 +16,5 @@ class AdaptationProfile:
         self.facility = profile['facility'] if 'facility' in profile.keys() else ''
         self.profile_name = profile['profile_name'] if 'profile_name' in profile.keys() else ''
         self.username = profile['username'] if 'username' in profile.keys() else ''
+        self.pdc_string = profile['pdc_strin'] if 'pdc_string' in profile.keys() else ''
         self.created_at = time.ctime()
