@@ -1,3 +1,5 @@
+import re
+
 import requests
 from lxml import etree
 from flask import Blueprint, jsonify
@@ -20,4 +22,18 @@ def _metar(airport):
 @weather_blueprint.route('/datis/airport/<airport>')
 def _get_datis(airport):
     response = requests.get(f'https://datis.clowd.io/api/{airport}')
-    return jsonify(response.json())
+    json = response.json()
+    if type(json) is list:
+        data = []
+        for datis in json:
+            atis_str = datis['datis']
+            data.append({
+                'datis': atis_str,
+                'letter': re.search(r'(?:INFO )(\S)', atis_str).group(1),
+                'time': re.search(r'\d{4}Z', atis_str)[0],
+                'type': datis['airport'],
+                'airport': datis['airport']
+            })
+        return jsonify(data)
+    else:
+        return jsonify(json)
