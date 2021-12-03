@@ -31,7 +31,7 @@ def _get_datis(airport):
                 'datis': atis_str,
                 'letter': re.search(r'(?:INFO )(\S)', atis_str).group(1),
                 'time': re.search(r'\d{4}Z', atis_str)[0],
-                'type': datis['airport'],
+                'type': datis['type'],
                 'airport': datis['airport']
             })
         return jsonify(data)
