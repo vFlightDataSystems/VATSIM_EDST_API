@@ -15,3 +15,9 @@ def _metar(airport):
     metar_list = [e.text for e in tree.iter('raw_text')]
 
     return jsonify(metar_list)
+
+
+@weather_blueprint.route('/datis/airport/<airport>')
+def _get_datis(airport):
+    response = requests.get(f'https://datis.clowd.io/api/{airport}')
+    return jsonify(response.json())
