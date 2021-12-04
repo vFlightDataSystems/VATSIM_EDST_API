@@ -18,7 +18,7 @@ def get_datis(airport):
         for datis in json:
             atis_str = datis['datis']
             data.append({
-                'datis': atis_str,
+                'atis_string': atis_str,
                 'letter': re.search(r'(?:INFO )(\S)', atis_str).group(1),
                 'time': re.search(r'\d{4}Z', atis_str)[0],
                 'type': datis['type'],
