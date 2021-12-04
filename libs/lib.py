@@ -3,6 +3,7 @@ import pprint
 import random
 import re
 from collections import defaultdict
+from typing import Optional
 
 import requests
 from flask import g
@@ -29,7 +30,7 @@ def get_nat_types(aircraft: str) -> list:
     return [e['nat'] for e in nat_list]
 
 
-def get_airway(airway: str):
+def get_airway(airway: str) -> list:
     """
     get list of fixes on an airway
     :param airway: airway
@@ -142,7 +143,7 @@ def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
     return fp
 
 
-def assign_beacon(fp: Flightplan):
+def assign_beacon(fp: Flightplan) -> Optional[str]:
     nav_client: MongoClient = g.mongo_nav_client
     fd_client: MongoClient = g.mongo_fd_client
     code = None
@@ -164,14 +165,21 @@ def assign_beacon(fp: Flightplan):
     return code
 
 
-@cache.cached(timeout=15, key_prefix='all_pilots')
-def get_all_pilots():
+@cache.cached(timeout=15, key_prefix='all_connections')
+def get_all_connections() -> Optional[dict]:
     response = requests.get(config.VATSIM_DATA_URL)
     try:
-        pilots = response.json()['pilots']
-        return pilots
+        return response.json()
     except json.decoder.JSONDecodeError:
         return None
+
+
+@cache.cached(timeout=15, key_prefix='all_pilots')
+def get_all_pilots() -> list:
+    if (connections := get_all_connections()) is not None:
+        if 'pilots' in connections.keys():
+            return connections['pilots']
+    return []
 
 
 @cache.cached(timeout=15, key_prefix='all_flightplans')
