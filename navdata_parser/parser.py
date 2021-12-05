@@ -6,8 +6,8 @@ from collections import defaultdict
 
 from dms2dec.dms_convert import dms2dec
 
-NASR_DIR = '28DaySubscription_Effective_2021-11-04'
-CIFP_FILENAME = 'CIFP_211104/FAACIFP18'
+NASR_DIR = 'NASR'
+CIFP_FILENAME = 'CIFP/FAACIFP18'
 
 NAVDATA_FILENAME = NASR_DIR + '/NAV.txt'
 FIXDATA_FILENAME = NASR_DIR + '/FIX.txt'
@@ -18,7 +18,7 @@ AWY_FILENAME = NASR_DIR + '/AWY.txt'
 AIRCRAFT_FILENAME = 'zla_data/aircraft.json'
 
 cifp_rwy_regex = re.compile(r'^SUSAP (\w{3,4})\s?K\d\wRW(\d{1,2}[LCR]?)')
-cifp_procedure_rwy_regex = re.compile(r'^SUSAP (\w{3,4})\s?K\d\w(\w{3,5}\d)\s{0,2}\d(?:RW)?(\d{2}[LCRB]?|ALL)')
+cifp_procedure_rwy_regex = re.compile(r'^SUSAP (\w{3,4})\s?K\d\w(\w{3,5}\d)\s{0,2}\S(?:RW)?(\d{2}[LCRB]?|ALL\s)')
 
 type_altitudes = {
     'L': [0, 18000],
@@ -127,10 +127,10 @@ def write_cifp_data():
             for match in cifp_procedure_rwy_regex.finditer(line):
                 apt = match.group(1)
                 procedure = match.group(2)
-                runway = match.group(3)
+                runway = match.group(3).strip()
                 try:
                     if runway == 'ALL':
-                        for _, v in cifp_data[apt].items():
+                        for v in cifp_data[apt].values():
                             if procedure not in v:
                                 v.append(procedure)
                     elif runway[-1] == 'B':
