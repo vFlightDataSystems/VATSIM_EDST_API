@@ -19,13 +19,19 @@ cache = Cache()
 clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
 
 
+def get_airports_in_artcc(artcc) -> list:
+    client: MongoClient = g.mongo_reader_client
+    airports = client.navdata.airports.find({"artcc": artcc}, {'_id': False})
+    return list(filter(None, [a['icao'] for a in airports]))
+
+
 def get_nat_types(aircraft: str) -> list:
     """
     get all valid NAT type entries for given aircraft
     :param aircraft: aircraft icao code
     :return: aircraft nat types
     """
-    client: MongoClient = g.mongo_fd_client
+    client: MongoClient = g.mongo_reader_client
     nat_list = list(client.flightdata.nat_types.find({"aircraft_type": aircraft}, {'_id': False}))
     return [e['nat'] for e in nat_list]
 
@@ -36,21 +42,21 @@ def get_airway(airway: str) -> list:
     :param airway: airway
     :return: list of all fixes in the airway (order matters!)
     """
-    client = g.mongo_nav_client
+    client: MongoClient = g.mongo_reader_client
     waypoints = list(sorted(client.navdata.airways.find(
         {"airway": {"$in": [airway]}}, {'_id': False}), key=lambda x: int(x['sequence'])))
     return waypoints
 
 
-def get_apt_info(apt: str) -> dict:
+def get_apt_info(airport: str) -> dict:
     """
     get information for airport
-    :param apt:
+    :param airport: ICAO code
     :return: information about given airport
     """
-    # remove leading 'K' for US airports
-    # apt = re.sub(r'^K', '', apt)
-    return {}
+    client: MongoClient = g.mongo_reader_client
+    airport_data = client.navdata.airports.find_one({'icao': airport.upper()}, {'_id': False})
+    return airport_data
 
 
 def expand_route(route: str, airways=None) -> str:
@@ -96,7 +102,7 @@ def clean_route(route, dep='', dest=''):
 
 
 def get_faa_prd(dep: str, dest: str) -> list:
-    client = g.mongo_fd_client
+    client: MongoClient = g.mongo_reader_client
     local_dep = re.sub(r'^K?', '', dep)
     local_dest = re.sub(r'^K?', '', dest)
     faa_prd_list = list(
@@ -107,9 +113,10 @@ def get_faa_prd(dep: str, dest: str) -> list:
 
 
 def get_adar(dep: str, dest: str) -> list:
-    client = g.mongo_fd_client
+    dep_artcc = libs.lib.get_apt_info(dep)['artcc'].lower()
+    client: MongoClient = g.mongo_reader_client
     adar_list = list(
-        client.flightdata.adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
+        client[dep_artcc].adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
     for adar in adar_list:
         adar['source'] = 'adar'
     return adar_list
@@ -134,7 +141,6 @@ def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
             adr_list = libs.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
             adr_list = sorted(adr_list, key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
             adr_amendments = [libs.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
-            # pprint.pprint(adr_list)
             if adr_amendments and not any([a['route'] == fp.route for a in adr_amendments]):
                 adr = adr_amendments[0]
                 if adr['adr_amendment']:
@@ -144,16 +150,15 @@ def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
 
 
 def assign_beacon(fp: Flightplan) -> Optional[str]:
-    nav_client: MongoClient = g.mongo_nav_client
-    fd_client: MongoClient = g.mongo_fd_client
+    client: MongoClient = g.mongo_reader_client
     code = None
-    if fp and (dep_airport_info := nav_client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False})):
-        arr_airport_info = nav_client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
+    if fp and (dep_airport_info := client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False})):
+        arr_airport_info = client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
         dep_artcc = dep_airport_info['artcc']
         arr_artcc = arr_airport_info['artcc'] if arr_airport_info else None
-        beacon_ranges = fd_client.flightdata.beacons.find(
+        beacon_ranges = client.flightdata.beacons.find(
             {'artcc': dep_artcc, 'priority': {'$regex': r'I[PST]?-?\d*', '$options': 'i'}}, {'_id': False}) \
-            if dep_artcc == arr_artcc else fd_client.flightdata.beacons.find(
+            if dep_artcc == arr_artcc else client.flightdata.beacons.find(
             {'artcc': dep_artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
         codes_in_use = set(int(fp.assigned_transponder) for fp in get_all_flightplans().values())
         for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
