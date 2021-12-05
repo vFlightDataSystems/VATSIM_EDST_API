@@ -41,13 +41,11 @@ def register_extensions(app):
 
     @app.before_request
     def _get_mongo_clients():
-        mongo_client.get_fd_mongo_client()
-        mongo_client.get_nav_mongo_client()
+        mongo_client.get_reader_mongo_client()
 
     @app.after_request
     def _close_mongo_clients(response):
-        mongo_client.close_fd_mongo_client()
-        mongo_client.close_nav_mongo_client()
+        mongo_client.close_reader_mongo_client()
         return response
 
 
