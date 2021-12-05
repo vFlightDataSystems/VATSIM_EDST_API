@@ -32,7 +32,8 @@ def get_datis(airport):
 def get_vatsim_atis(airport: str) -> Optional[list]:
     if (connections := get_all_connections()) is not None:
         if 'atis' in connections.keys():
-            if atis_connection := next(filter(lambda x: x['callsign'] == f'{airport.upper()}_ATIS', connections['atis']), None):
+            if atis_connection := next(
+                    filter(lambda x: x['callsign'] == f'{airport.upper()}_ATIS', connections['atis']), None):
                 atis_str = ' '.join(atis_connection['text_atis'])
                 return [{
                     'atis_string': atis_str,

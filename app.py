@@ -30,10 +30,10 @@ def create_app():
 
 def register_extensions(app):
     cache.init_app(app, config=cache_config)
-    app.register_blueprint(adr_blueprint, url_prefix=f'{PREFIX}/adr')
-    app.register_blueprint(adar_blueprint, url_prefix=f'{PREFIX}/adar')
+    # app.register_blueprint(adr_blueprint, url_prefix=f'{PREFIX}/adr')
+    # app.register_blueprint(adar_blueprint, url_prefix=f'{PREFIX}/adar')
     app.register_blueprint(prefroute_blueprint, url_prefix=f'{PREFIX}/prefroute')
-    app.register_blueprint(faa_blueprint, url_prefix=f'{PREFIX}/faa')
+    # app.register_blueprint(faa_blueprint, url_prefix=f'{PREFIX}/faa')
     app.register_blueprint(flightplans_blueprint, url_prefix=f'{PREFIX}/flightplan')
     app.register_blueprint(navdata_blueprint, url_prefix=f'{PREFIX}/navdata')
     app.register_blueprint(adaptation_blueprint, url_prefix=f'{PREFIX}/adaptation')
