@@ -16,7 +16,7 @@ def get_eligible_adar(fp: Flightplan, departing_runways=None) -> list:
 
     :return:
     """
-    dep_artcc = libs.lib.get_apt_info(fp.departure)['artcc'].lower()
+    dep_artcc = libs.lib.get_airport_info(fp.departure)['artcc'].lower()
     client: MongoClient = g.mongo_reader_client
     nat_list = libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adar_list = client[dep_artcc].adar.find(

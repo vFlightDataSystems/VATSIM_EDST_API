@@ -48,7 +48,7 @@ def get_airway(airway: str) -> list:
     return waypoints
 
 
-def get_apt_info(airport: str) -> dict:
+def get_airport_info(airport: str) -> dict:
     """
     get information for airport
     :param airport: ICAO code
@@ -113,7 +113,7 @@ def get_faa_prd(dep: str, dest: str) -> list:
 
 
 def get_adar(dep: str, dest: str) -> list:
-    dep_artcc = libs.lib.get_apt_info(dep)['artcc'].lower()
+    dep_artcc = libs.lib.get_airport_info(dep)['artcc'].lower()
     client: MongoClient = g.mongo_reader_client
     adar_list = list(
         client[dep_artcc].adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
