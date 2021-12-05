@@ -91,15 +91,15 @@ def amend_adr(route: str, adr: dict) -> dict:
 
 def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
-    client: MongoClient = g.mongo_fd_client
-    nav_client: MongoClient = g.mongo_nav_client
+    dep_artcc = libs.lib.get_apt_info(fp.departure)['artcc'].lower()
+    client: MongoClient = g.mongo_reader_client
     nat_list = libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
-    adr_list = client.flightdata.adr.find(
+    adr_list = client[dep_artcc].adr.find(
         {"dep": fp.departure,
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
          }, {'_id': False})
     eligible_adr = []
-    dep_procedures = [p for p in nav_client.navdata.procedures.find(
+    dep_procedures = [p for p in client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
     ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
                     p['airports']))]
