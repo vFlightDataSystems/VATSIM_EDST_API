@@ -9,6 +9,7 @@ from pathlib import Path
 
 from pymongo import MongoClient
 from config import *
+import mongo_users
 
 NATTYPE_FILENAME = 'adrdata/ACCriteriaTypes.csv'
 STARDP_FILENAME = 'navdata_parser/out/stardp.csv'
@@ -35,11 +36,25 @@ def get_fd_mongo_client() -> MongoClient:
                        authSource='flightdata')
 
 
+def get_mongo_client(user, password, dbname) -> MongoClient:
+    return MongoClient(MONGO_URL,
+                       username=user,
+                       password=password,
+                       authSource=dbname)
+
+
 def get_nav_mongo_client() -> MongoClient:
     return MongoClient(MONGO_URL,
                        username=MONGO_NAV_USER,
                        password=MONGO_NAV_PASS,
                        authSource='navdata')
+
+
+def get_admin_mongo_client() -> MongoClient:
+    return MongoClient(MONGO_URL,
+                       username=os.getenv('MONGO_ADMIN_USER'),
+                       password=os.getenv('MONGO_ADMIN_PASS')
+                       )
 
 
 def write_beacons(dbname):
@@ -69,8 +84,9 @@ def write_nattypes(filename, dbname):
     client.close()
 
 
-def write_adar(filename, dbname, dp_data, star_data):
+def write_adar(filename, dp_data, star_data):
     rows = []
+    artcc = re.search(r'z\S{2}', filename)[0].lower()
     with open(filename, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for entry in reader:
@@ -87,7 +103,8 @@ def write_adar(filename, dbname, dp_data, star_data):
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
                 'order': entry['Order'],
-                'route_groups': entry['Route Groups']
+                'route_groups': entry['Route Groups'],
+                'artcc': artcc
             }
             for e in alphas:
                 if e[:13] == '(RouteString)':
@@ -108,7 +125,8 @@ def write_adar(filename, dbname, dp_data, star_data):
                         row['star'] = current_star
                         row['route'] = row['route'].replace(star, current_star)
                 else:
-                    print(f'{star} not in nasr!')
+                    pass
+                    # print(f'{star} not in nasr!')
             dp = row['dp']
             if dp:
                 dp_id = ''.join([s for s in dp if not s.isdigit()])
@@ -118,17 +136,22 @@ def write_adar(filename, dbname, dp_data, star_data):
                         row['dp'] = current_dp
                         row['route'] = row['route'].replace(dp, current_dp)
                 else:
-                    print(f'{dp} not in nasr!')
+                    pass
+                    # print(f'{dp} not in nasr!')
             rows.append(row)
-    client: MongoClient = get_fd_mongo_client()
-    db = client[dbname]
-    col = db['adar']
+
+    user = f'{artcc}_admin'
+    password = mongo_users.users[user]
+    client: MongoClient = get_mongo_client(user, password, artcc)
+    db = client[artcc]
+    col = db[f'adar']
     col.insert_many(rows)
     client.close()
 
 
-def parse_adr(filename, dbname, dp_data):
+def write_adr(filename, dp_data):
     rows = []
+    artcc = re.search(r'z\S{2}', filename)[0].lower()
     with open(filename, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for entry in reader:
@@ -152,7 +175,7 @@ def parse_adr(filename, dbname, dp_data):
                 'aircraft_class': entry['AC Class Criteria'].split(),
                 'tfixes': tfixes,
                 'order': entry['Order'],
-                'xlines': entry['XLines'],
+                'xlines': entry['XLines']
             }
             for e in alphas:
                 if e[:13] == '(RouteString)':
@@ -171,12 +194,16 @@ def parse_adr(filename, dbname, dp_data):
                         row['dp'] = current_dp
                         row['route'] = row['route'].replace(dp, current_dp)
                 else:
-                    print(f'{dp} not in nasr!')
+                    pass
+                    # print(f'{dp} not in nasr!')
             if row['route']:
                 rows.append(row)
-    client: MongoClient = get_fd_mongo_client()
-    db = client[dbname]
-    col = db['adr']
+
+    user = f'{artcc}_admin'
+    password = mongo_users.users[user]
+    client: MongoClient = get_mongo_client(user, password, artcc)
+    db = client[artcc]
+    col = db[f'adr']
     col.insert_many(rows)
     client.close()
 
@@ -300,20 +327,32 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
     client.close()
 
 
+def add_mongo_users():
+    client = get_admin_mongo_client()
+    for user, password in mongo_users.users.items():
+        artcc = user[0:3].lower()
+        client[artcc].command(
+            'createUser', user,
+            pwd=password,
+            roles=[{'role': 'readWrite', 'db': artcc}]
+        )
+
+
 if __name__ == '__main__':
     # write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
     #               FIXES_FILENAME, CIFP_DATA_FILENAME)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
-    # with open(STARDP_FILENAME, 'r') as f:
-    #     reader = csv.DictReader(f)
-    #     stardp_data = {e['proc_id']: e for e in reader}
-    # dp_data = {k: v for k, v in stardp_data.items() if v['type'] == 'DP'}
-    # star_data = {k: v for k, v in stardp_data.items() if v['type'] == 'STAR'}
-    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-    #     path = Path(filepath)
-    #     if path.stem[:3] == 'adr':
-    #         parse_adr(filepath, fd_db_name, dp_data)
-    #     if path.stem[:4] == 'adar':
-    #         write_adar(filepath, fd_db_name, dp_data, star_data)
+    with open(STARDP_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        stardp_data = {e['proc_id']: e for e in reader}
+    dp_data = {k: v for k, v in stardp_data.items() if v['type'] == 'DP'}
+    star_data = {k: v for k, v in stardp_data.items() if v['type'] == 'STAR'}
+    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+        path = Path(filepath)
+        if path.stem[:3] == 'adr':
+            write_adr(filepath, dp_data)
+        if path.stem[:4] == 'adar':
+            write_adar(filepath, dp_data, star_data)
     # write_faa_prd(FAA_PRD_FILENAME, fd_db_name)
-    write_beacons(fd_db_name)
+    # write_beacons(fd_db_name)
+    # add_mongo_users()
