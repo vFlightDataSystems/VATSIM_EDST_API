@@ -7,5 +7,7 @@ MONGO_NAV_PASS = os.getenv('MONGO_NAV_PASS')
 MONGO_URL = os.getenv('MONGO_URL')
 MONGO_ADAPT_USER = os.getenv('MONGO_ADAPT_USER')
 MONGO_ADAPT_PASS = os.getenv('MONGO_ADAPT_PASS')
+MONGO_READER_PASS = os.getenv('MONGO_READER_PASS')
 
 VATSIM_DATA_URL = 'https://data.vatsim.net/v3/vatsim-data.json'
+
