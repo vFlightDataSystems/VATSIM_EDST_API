@@ -21,6 +21,14 @@ def get_nav_mongo_client():
     return g.mongo_nav_client
 
 
+def get_reader_mongo_client():
+    if 'mongo_reader_client' not in g:
+        g.mongo_reader_client = MongoClient(MONGO_URL,
+                                            username='reader',
+                                            password=MONGO_READER_PASS,
+                                            authSource='admin')
+
+
 def get_adapt_mongo_client():
     if 'mongo_adapt_client' not in g:
         g.mongo_adapt_client = MongoClient(MONGO_URL,
@@ -38,6 +46,12 @@ def close_fd_mongo_client(e=None):
 
 def close_nav_mongo_client(e=None):
     client = g.pop('mongo_nav_client', None)
+    if client is not None:
+        client.close()
+
+
+def close_reader_mongo_client(e=None):
+    client = g.pop('mongo_reader_client', None)
     if client is not None:
         client.close()
 
