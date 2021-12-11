@@ -101,7 +101,7 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
     eligible_adr = []
     dep_procedures = [p for p in client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
-    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
+    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways or []).intersection(x['runways']),
                     p['airports']))]
     alt = int(fp.altitude)
     split_route = fp.route.split()

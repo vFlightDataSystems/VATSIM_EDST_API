@@ -16,6 +16,8 @@ def get_eligible_adar(fp: Flightplan, departing_runways=None) -> list:
 
     :return:
     """
+    if departing_runways is None:
+        departing_runways = []
     dep_artcc = libs.lib.get_airport_info(fp.departure)['artcc'].lower()
     client: MongoClient = g.mongo_reader_client
     nat_list = libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
@@ -24,7 +26,7 @@ def get_eligible_adar(fp: Flightplan, departing_runways=None) -> list:
         {'_id': False})
     dep_procedures = [p for p in client.navdata.procedures.find(
         {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
-    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways).intersection(x['runways']),
+    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways or []).intersection(x['runways']),
                     p['airports']))]
     return [adar for adar in adar_list if
             check_adar_is_active(adar, fp, dep_procedures)]
