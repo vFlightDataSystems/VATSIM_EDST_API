@@ -12,7 +12,7 @@ from config import *
 import mongo_users
 
 NATTYPE_FILENAME = 'adrdata/ACCriteriaTypes.csv'
-STARDP_FILENAME = 'navdata_parser/out/stardp.csv'
+STARDP_FILENAME = 'navdata_parser/out/stardp.json'
 AIRWAYS_FILENAME = 'navdata_parser/out/airways.csv'
 APT_FILENAME = 'navdata_parser/out/aptdata.csv'
 WAYPOINTS_FILENAME = 'navdata_parser/out/navdata_combined.csv'
@@ -228,27 +228,13 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
     with open(cifp_data_filename, 'r') as f:
         cifp_data = json.load(f)
 
-    rows = []
     with open(stardp_filename, 'r') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            airports = defaultdict(list)
-            procedure = row['procedure']
-            for apt, v in cifp_data.items():
-                for rwy, rwy_procs in v.items():
-                    if procedure in rwy_procs:
-                        airports[apt].append(rwy)
-            del row['id']
-            del row['proc_id']
-            row['airports'] = [{'airport': airport, 'runways': airports[airport]} for airport in airports.keys()]
-            row['transitions'] = row['transitions'].split(',')
-            rows.append(row)
-
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['procedures']
-    col.insert_many(rows)
-    client.close()
+        rows = json.load(f)
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['procedures']
+        col.insert_many(rows)
+        client.close()
 
     rows = []
     with open(navdata_filename, 'r') as f:
@@ -339,20 +325,19 @@ def add_mongo_users():
 
 
 if __name__ == '__main__':
-    # write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
-    #               FIXES_FILENAME, CIFP_DATA_FILENAME)
+    write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
+                  FIXES_FILENAME, CIFP_DATA_FILENAME)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
-    with open(STARDP_FILENAME, 'r') as f:
-        reader = csv.DictReader(f)
-        stardp_data = {e['proc_id']: e for e in reader}
-    dp_data = {k: v for k, v in stardp_data.items() if v['type'] == 'DP'}
-    star_data = {k: v for k, v in stardp_data.items() if v['type'] == 'STAR'}
-    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-        path = Path(filepath)
-        if path.stem[:3] == 'adr':
-            write_adr(filepath, dp_data)
-        if path.stem[:4] == 'adar':
-            write_adar(filepath, dp_data, star_data)
+    # with open(STARDP_FILENAME, 'r') as f:
+    #     stardp_data = json.load(f)
+    # dp_data = {row['procedure']: row for row in stardp_data if row['type'] == 'DP'}
+    # star_data = {row['procedure']: row for row in stardp_data if row['type'] == 'STAR'}
+    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+    #     path = Path(filepath)
+    #     if path.stem[:3] == 'adr':
+    #         write_adr(filepath, dp_data)
+    #     if path.stem[:4] == 'adar':
+    #         write_adar(filepath, dp_data, star_data)
     # write_faa_prd(FAA_PRD_FILENAME, fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()

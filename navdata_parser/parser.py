@@ -184,40 +184,69 @@ def write_aptdata(rows):
 
 def parse_stardp():
     rows = []
-    with open(STARDP_FILENAME, 'r') as f:
+    with open(STARDP_FILENAME, 'r') as stardp_f, \
+            open(CIFP_FILENAME, 'r') as cifp_f:
+        cifp_lines = cifp_f.readlines()
         entry = {}
-        for line in f.readlines():
+        route = []
+        procedure = ''
+        transition = ''
+        transition_name = ''
+        pid = None
+        airport = ''
+        for line in stardp_f.readlines():
+            npid = line[:5]
+            fix_type = line[10:12].strip()
             e = line[38:51].strip().split('.')
-            name = line[51:161].strip()
-            if len(e) == 2:
-                if re.search(r'\d', e[0]):
-                    proc_type = 'DP'
-                    proc = e[0]
-                    trans = e[1]
-                else:
-                    proc = e[1]
-                    trans = e[0]
-                    proc_type = 'STAR'
-                if not entry or proc != entry['procedure']:
-                    if entry:
-                        entry['transitions'] = ','.join(set(entry['transitions']))
-                        rows.append(entry)
-                    name = ' '.join(name.split()[:-1]).strip()
-                    eid = ''.join(i for i in proc if not i.isdigit())
-                    entry = {'id': uuid.uuid4(), 'proc_id': eid, 'procedure': proc, 'name': name, 'transitions': [],
-                             'type': proc_type}
-                entry['transitions'].append(trans)
-        if rows[-1]['procedure'] != entry['procedure']:
-            entry['transitions'] = ','.join(set(entry['transitions']))
-            rows.append(entry)
+            fix = line[30:35].strip()
+            if len(e) > 1 and route:
+                transition_lines = [l for l in cifp_lines if l[13:19].strip() == procedure and (
+                        (fix_type == 'AA' and fix in line[6:10]) or True)]
+                _transitions = set((l[6:10], transition) for l in transition_lines if l[20:25] == transition)
+                for a, t in _transitions:
+                    entry['routes'].append({'transition': t, 'name': transition_name, 'route': route, 'airport': a})
+                route = []
+            elif fix_type == 'AA' and route:
+                _transitions = []
+                transition_lines = [l for l in cifp_lines if l[13:19].strip() == procedure and (
+                            (fix_type == 'AA' and fix in line[6:10]) or True)]
+                rw_lines = [l for l in transition_lines if
+                            l[29:34].strip() == route[-1] and re.match(r'RW\d+[CLRB]?|ALL', l[20:25])]
+                for rw_line in rw_lines:
+                    airport = rw_line[6:10].strip()
+                    if match := re.search(r'RW\d+[CLRB]?|ALL', rw_line[20:25]):
+                        t = match.group(0).strip()
+                        if re.match(r'RW\d+B', t):
+                            _transitions += [(airport, t.replace('B', c)) for c in 'LR']
+                        else:
+                            _transitions.append((airport, t))
+                if not _transitions:
+                    _transitions = set((l[6:10], transition) for l in transition_lines if l[20:25] == transition)
+                for a, t in _transitions:
+                    entry['routes'].append({'transition': t, 'name': transition_name, 'route': route, 'airport': a})
+                route = []
+            else:
+                route.append(fix)
+
+            if npid != pid:
+                if entry:
+                    rows.append(entry)
+                entry = {'type': 'DP' if npid[0] == 'D' else 'STAR',
+                         'routes': []
+                         }
+            if len(e) > 1:
+                procedure = e[0].strip() if npid[0] == 'D' else e[1].strip()
+                entry['procedure'] = procedure
+                transition = e[1].strip() if npid[0] == 'D' else e[0].strip()
+                transition_name = line[51:161].strip()
+            pid = npid
+
     return rows
 
 
 def write_stardp(rows):
-    with open('out/stardp.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'proc_id', 'procedure', 'name', 'transitions', 'type'])
-        writer.writeheader()
-        writer.writerows(rows)
+    with open('out/stardp.json', 'w', newline='', encoding='utf8') as f:
+        f.write(json.dumps(rows))
 
 
 def get_route_info(aircraft, alt, route_type):
@@ -358,20 +387,20 @@ def write_awy(rows):
 
 
 if __name__ == '__main__':
-    navaid_rows = parse_navaid_data()
-    airway_rows = parse_awy()
-    fixdata_rows = parse_fixdata()
-    aptdata_rows = parse_aptdata()
-    acdata_rows = parse_acdata()
+    # navaid_rows = parse_navaid_data()
+    # airway_rows = parse_awy()
+    # fixdata_rows = parse_fixdata()
+    # aptdata_rows = parse_aptdata()
+    # acdata_rows = parse_acdata()
     stardp_rows = parse_stardp()
-    prefroute_rows = parse_prefroutes()
+    # prefroute_rows = parse_prefroutes()
 
-    write_cifp_data()
-    write_fixdata(fixdata_rows)
-    write_navaid_data(navaid_rows)
-    write_navdata_combined(navaid_rows, fixdata_rows)
-    write_aptdata(aptdata_rows)
+    # write_cifp_data()
+    # write_fixdata(fixdata_rows)
+    # write_navaid_data(navaid_rows)
+    # write_navdata_combined(navaid_rows, fixdata_rows)
+    # write_aptdata(aptdata_rows)
     write_stardp(stardp_rows)
-    write_awy(airway_rows)
-    write_prefroutes(prefroute_rows)
+    # write_awy(airway_rows)
+    # write_prefroutes(prefroute_rows)
     pass
