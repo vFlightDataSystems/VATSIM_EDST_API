@@ -14,9 +14,9 @@ def _get_airport(airport: str):
 @navdata_blueprint.route('/airport/<airport>/procedures')
 def _get_airport_procedures(airport: str):
     client: MongoClient = g.mongo_reader_client
-    data = list(client.navdata.procedures.find({'routes': {'$elemMatch': {'airport': airport.upper()}}}, {'_id': False}))
+    data = list(client.navdata.procedures.find({'routes': {'$elemMatch': {'airports': airport.upper()}}}, {'_id': False}))
     for row in data:
-        row['routes'] = list(filter(lambda r: r['airport'] == airport, row['routes']))
+        row['routes'] = list(filter(lambda r: airport in r['airports'], row['routes']))
     return jsonify(data)
 
 

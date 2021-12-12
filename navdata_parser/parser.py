@@ -203,15 +203,16 @@ def parse_stardp():
                 transition_lines = [l for l in cifp_lines if l[13:19].strip() == procedure and (
                         (fix_type == 'AA' and fix in line[6:10]) or True)]
                 _transitions = set((l[6:10], transition) for l in transition_lines if l[20:25] == transition)
-                for a, t in _transitions:
-                    entry['routes'].append({'transition': t, 'name': transition_name, 'route': route, 'airport': a})
-                route = []
+                entry['routes'].append({'transition': t, 'name': transition_name, 'route': route, 'airports': [t[0] for t in _transitions]})
+                route = [fix]
             elif fix_type == 'AA' and route:
                 _transitions = []
                 transition_lines = [l for l in cifp_lines if l[13:19].strip() == procedure and (
-                            (fix_type == 'AA' and fix in line[6:10]) or True)]
+                        (fix_type == 'AA' and fix in line[6:10]) or True)]
                 rw_lines = [l for l in transition_lines if
-                            l[29:34].strip() == route[-1] and re.match(r'RW\d+[CLRB]?|ALL', l[20:25])]
+                            ((l[29:34].strip() == route[0] and npid[0] == 'D')
+                             or (l[29:34].strip() == route[-1] and npid[0] == 'S'))
+                            and re.match(r'RW\d+[CLRB]?|ALL', l[20:25])]
                 for rw_line in rw_lines:
                     airport = rw_line[6:10].strip()
                     if match := re.search(r'RW\d+[CLRB]?|ALL', rw_line[20:25]):
@@ -222,8 +223,7 @@ def parse_stardp():
                             _transitions.append((airport, t))
                 if not _transitions:
                     _transitions = set((l[6:10], transition) for l in transition_lines if l[20:25] == transition)
-                for a, t in _transitions:
-                    entry['routes'].append({'transition': t, 'name': transition_name, 'route': route, 'airport': a})
+                entry['routes'].append({'transition': t, 'name': transition_name, 'route': route, 'airports': [t[0] for t in _transitions]})
                 route = []
             else:
                 route.append(fix)
@@ -232,12 +232,15 @@ def parse_stardp():
                 if entry:
                     rows.append(entry)
                 entry = {'type': 'DP' if npid[0] == 'D' else 'STAR',
-                         'routes': []
+                         'routes': [],
+                         'transitions': []
                          }
             if len(e) > 1:
                 procedure = e[0].strip() if npid[0] == 'D' else e[1].strip()
                 entry['procedure'] = procedure
                 transition = e[1].strip() if npid[0] == 'D' else e[0].strip()
+                if transition not in entry['transitions']:
+                    entry['transitions'].append(transition)
                 transition_name = line[51:161].strip()
             pid = npid
 
