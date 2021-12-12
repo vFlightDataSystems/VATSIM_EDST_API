@@ -1,4 +1,5 @@
 import logging
+import re
 
 from flask import g
 from pymongo import MongoClient
@@ -99,17 +100,19 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
          "aircraft_class": {"$elemMatch": {"$in": nat_list}}
          }, {'_id': False})
     eligible_adr = []
-    dep_procedures = [p for p in client.navdata.procedures.find(
-        {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
-    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways or []).intersection(x['runways']),
-                    p['airports']))]
+    dep_procedures = [
+        p['procedure'] for p in
+        client.navdata.procedures.find({'routes': {'$elemMatch': {'airport': fp.departure.upper()}}},
+                                       {'_id': False})
+        if any([re.match(rf'RW{rw}', r['transition']) for r in p['routes'] for rw in departing_runways])
+    ]
     alt = int(fp.altitude)
     split_route = fp.route.split()
     expanded_route = libs.lib.expand_route(' '.join(fp.route.split()[:7])).split()
     for adr in adr_list:
         dp = adr['dp']
         # check if adr is valid in current configuration
-        if dep_procedures and dp and not any(p['procedure'] == dp for p in dep_procedures):
+        if dep_procedures and dp and not any(p == dp for p in dep_procedures):
             continue
         if (int(adr['min_alt']) <= alt <= int(adr['top_alt'])) or alt == 0:
             for tfix in adr['tfixes']:
