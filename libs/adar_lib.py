@@ -1,3 +1,5 @@
+import re
+
 from pymongo import MongoClient
 from flask import g
 
@@ -24,9 +26,11 @@ def get_eligible_adar(fp: Flightplan, departing_runways=None) -> list:
     adar_list = client[dep_artcc].adar.find(
         {'dep': fp.departure, 'dest': fp.arrival, 'aircraft_class': {'$elemMatch': {'$in': nat_list}}},
         {'_id': False})
-    dep_procedures = [p for p in client.navdata.procedures.find(
-        {'airports': {'$elemMatch': {'airport': fp.departure}}, 'type': 'DP'}, {'_id': False}
-    ) if any(filter(lambda x: x['airport'] == fp.departure and set(departing_runways or []).intersection(x['runways']),
-                    p['airports']))]
+    dep_procedures = [
+        p['procedure'] for p in
+        client.navdata.procedures.find({'routes': {'$elemMatch': {'airport': fp.departure.upper()}}},
+                                       {'_id': False})
+        if any([re.match(rf'RW{rw}', r['transition']) for r in p['routes'] for rw in departing_runways])
+    ]
     return [adar for adar in adar_list if
             check_adar_is_active(adar, fp, dep_procedures)]
