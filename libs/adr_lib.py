@@ -102,7 +102,7 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
     eligible_adr = []
     dep_procedures = [
         p['procedure'] for p in
-        client.navdata.procedures.find({'routes': {'$elemMatch': {'airport': fp.departure.upper()}}},
+        client.navdata.procedures.find({'routes': {'$elemMatch': {'airports': fp.departure.upper()}}},
                                        {'_id': False})
         if any([re.match(rf'RW{rw}', r['transition']) for r in p['routes'] for rw in departing_runways])
     ]
