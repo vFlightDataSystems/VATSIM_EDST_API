@@ -54,7 +54,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                     adr_route = slice_adr(adr_route, fix)
                     if adr_route != route[:len(adr_route)]:
                         adr_route += ' ' + split_route[route_index]
-                        route = ' '.join(split_route[route_index+1:])
+                        route = ' '.join(split_route[route_index + 1:])
                     else:
                         adr_route = ''
                     break
@@ -104,7 +104,8 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
         p['procedure'] for p in
         client.navdata.procedures.find({'routes': {'$elemMatch': {'airports': fp.departure.upper()}}},
                                        {'_id': False})
-        if any([re.match(rf'RW{rw}', r['transition']) for r in p['routes'] for rw in departing_runways])
+        if departing_runways is None or any(
+            [re.match(rf'RW{rw}|ALL', r['transition']) for r in p['routes'] for rw in departing_runways])
     ]
     alt = int(fp.altitude)
     split_route = fp.route.split()
