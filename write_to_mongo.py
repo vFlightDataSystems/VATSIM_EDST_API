@@ -19,6 +19,7 @@ WAYPOINTS_FILENAME = 'navdata_parser/out/navdata_combined.csv'
 NAVAIDS_FILENAME = 'navdata_parser/out/navaid_data.csv'
 FIXES_FILENAME = 'navdata_parser/out/fixdata.csv'
 FAA_PRD_FILENAME = 'navdata_parser/out/faa_prd.csv'
+FAA_CDR_FILENAME = 'navdata_parser/out/cdr.csv'
 CIFP_DATA_FILENAME = 'navdata_parser/out/cifp_data.json'
 
 fd_db_name = 'flightdata'
@@ -208,27 +209,31 @@ def write_adr(filename, dp_data):
     client.close()
 
 
-def write_faa_prd(filename, dbname):
-    rows = []
-    with open(filename, 'r') as f:
+def write_faa_data(dbname):
+    with open(FAA_PRD_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            row['airways'] = row['airways'].split()
-            rows.append(row)
-    client: MongoClient = get_fd_mongo_client()
-    db = client[dbname]
-    col = db['faa_prd']
-    col.insert_many(rows)
-    client.close()
+        rows = list(reader)
+        client: MongoClient = get_fd_mongo_client()
+        db = client[dbname]
+        col = db['faa_prd']
+        col.insert_many(rows)
+        client.close()
+
+    with open(FAA_CDR_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        client: MongoClient = get_fd_mongo_client()
+        db = client[dbname]
+        col = db['faa_cdr']
+        col.insert_many(rows)
+        client.close()
 
 
-def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, apt_filename, navaids_filename,
-                  fixes_filename, cifp_data_filename):
-    with open(cifp_data_filename, 'r') as f:
+def write_navdata(dbname):
+    with open(CIFP_DATA_FILENAME, 'r') as f:
         cifp_data = json.load(f)
 
-    with open(stardp_filename, 'r') as f:
+    with open(STARDP_FILENAME, 'r') as f:
         rows = json.load(f)
         client: MongoClient = get_nav_mongo_client()
         db = client[dbname]
@@ -236,34 +241,26 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
         col.insert_many(rows)
         client.close()
 
-    rows = []
-    with open(navdata_filename, 'r') as f:
+    with open(WAYPOINTS_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
+        rows = list(reader)
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['waypoints']
+        col.insert_many(rows)
+        client.close()
 
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['waypoints']
-    col.insert_many(rows)
-    client.close()
-
-    rows = []
-    with open(airways_filename, 'r') as f:
+    with open(AIRWAYS_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
-
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['airways']
-    col.insert_many(rows)
-    client.close()
+        rows = list(reader)
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['airways']
+        col.insert_many(rows)
+        client.close()
 
     rows = []
-    with open(apt_filename, 'r') as f:
+    with open(APT_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
             row['runways'] = []
@@ -277,7 +274,6 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
             except Exception as e:
                 pass  # print(row, e)
             row['procedures'] = [{'procedure': key, 'runways': val} for key, val in row_procedures.items()]
-            del row['id']
             rows.append(row)
 
     client: MongoClient = get_nav_mongo_client()
@@ -286,31 +282,25 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
     col.insert_many(rows)
     client.close()
 
-    rows = []
-    with open(navaids_filename, 'r') as f:
+    with open(NAVAIDS_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
+        rows = list(reader)
 
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['navaids']
-    col.insert_many(rows)
-    client.close()
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['navaids']
+        col.insert_many(rows)
+        client.close()
 
-    rows = []
-    with open(fixes_filename, 'r') as f:
+    with open(FIXES_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
+        rows = list(reader)
 
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['fixes']
-    col.insert_many(rows)
-    client.close()
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['fixes']
+        col.insert_many(rows)
+        client.close()
 
 
 def add_mongo_users():
@@ -325,8 +315,7 @@ def add_mongo_users():
 
 
 if __name__ == '__main__':
-    write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
-                  FIXES_FILENAME, CIFP_DATA_FILENAME)
+    # write_navdata(nav_db_name)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
     # with open(STARDP_FILENAME, 'r') as f:
     #     stardp_data = json.load(f)
@@ -338,6 +327,6 @@ if __name__ == '__main__':
     #         write_adr(filepath, dp_data)
     #     if path.stem[:4] == 'adar':
     #         write_adar(filepath, dp_data, star_data)
-    # write_faa_prd(FAA_PRD_FILENAME, fd_db_name)
+    write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
