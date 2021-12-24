@@ -17,3 +17,6 @@ six==1.16.0
 virtualenv==20.6.0
 virtualenv-clone==0.5.6
 Werkzeug==2.0.1
+requests~=2.25.1
+pymongo~=3.11.3
+lxml~=4.6.5

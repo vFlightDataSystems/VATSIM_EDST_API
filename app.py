@@ -1,7 +1,10 @@
 from flask import Flask
-from flask_cors import CORS
+# from flask_cors import CORS
+import threading
 
+import libs.edst_lib
 from blueprints.adaptation_bp import adaptation_blueprint
+from blueprints.edst_bp import edst_blueprint
 from blueprints.flightplans_bp import flightplans_blueprint
 from blueprints.navdata_bp import navdata_blueprint
 from blueprints.prefroute_bp import prefroute_blueprint
@@ -12,16 +15,36 @@ import mongo_client
 PREFIX = '/backend'
 
 cache_config = {
-    "DEBUG": True,          # some Flask specific configs
+    "DEBUG": True,  # some Flask specific configs
     "CACHE_TYPE": "SimpleCache",  # Flask-Caching related configs
     "CACHE_DEFAULT_TIMEOUT": 15
 }
 
+update_thread = threading.Thread()
+POOL_TIME = 10
+
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    # CORS(app)
     register_extensions(app)
+
+    def loop():
+        global update_thread
+        libs.edst_lib.update_edst_data()
+        update_thread = threading.Timer(POOL_TIME, loop, ())
+        update_thread.start()
+
+    def start_updatethread():
+        # Do initialisation stuff here
+        global update_thread
+        # Create your thread
+        update_thread = threading.Timer(POOL_TIME, loop, ())
+        update_thread.start()
+
+    # Initiate
+    start_updatethread()
+
     return app
 
 
@@ -35,6 +58,7 @@ def register_extensions(app):
     app.register_blueprint(navdata_blueprint, url_prefix=f'{PREFIX}/navdata')
     app.register_blueprint(adaptation_blueprint, url_prefix=f'{PREFIX}/adaptation')
     app.register_blueprint(weather_blueprint, url_prefix=f'{PREFIX}/weather')
+    app.register_blueprint(edst_blueprint, url_prefix=f'{PREFIX}/edst')
 
     @app.before_request
     def _get_mongo_clients():

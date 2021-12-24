@@ -13,6 +13,7 @@ from pymongo import MongoClient
 import config
 import libs.adar_lib
 import libs.adr_lib
+import mongo_client
 from resources.Flightplan import Flightplan
 
 cache = Cache()
@@ -42,7 +43,7 @@ def get_airway(airway: str) -> list:
     :param airway: airway
     :return: list of all fixes in the airway (order matters!)
     """
-    client: MongoClient = g.mongo_reader_client
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
     waypoints = list(sorted(client.navdata.airways.find(
         {"airway": {"$in": [airway]}}, {'_id': False}), key=lambda x: int(x['sequence'])))
     return waypoints
@@ -57,6 +58,26 @@ def get_airport_info(airport: str) -> dict:
     client: MongoClient = g.mongo_reader_client
     airport_data = client.navdata.airports.find_one({'icao': airport.upper()}, {'_id': False})
     return airport_data
+
+
+def format_route(route: str):
+    client = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    route = route.split()
+    new_route = ''
+    prev_is_fix = True
+    for s in route:
+        is_fix = not (get_airway(s) or client.navdata.procedures.find_one({'procedure': s.upper()}, {'_id': False}))
+        if prev_is_fix and is_fix:
+            new_route += f'..{s}'
+        else:
+            new_route += f'.{s}'
+        prev_is_fix = is_fix
+    new_route += '..' if prev_is_fix else '.'
+    return new_route
+
+
+def get_airways_on_route(route: str):
+    return list(filter(None, [get_airway(s) for s in route.split()]))
 
 
 def expand_route(route: str, airways=None) -> str:
@@ -105,21 +126,19 @@ def get_faa_prd(dep: str, dest: str) -> list:
     client: MongoClient = g.mongo_reader_client
     local_dep = re.sub(r'^K?', '', dep)
     local_dest = re.sub(r'^K?', '', dest)
-    faa_prd_list = list(
-        client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
-    for prd in faa_prd_list:
-        prd['source'] = 'faa'
-    return faa_prd_list
+    return list(client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
+
+
+def get_faa_cdr(dep: str, dest: str) -> list:
+    client: MongoClient = g.mongo_reader_client
+    return list(client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
 
 
 def get_adar(dep: str, dest: str) -> list:
-    dep_artcc = libs.lib.get_airport_info(dep)['artcc'].lower()
+    dep_artcc = get_airport_info(dep)['artcc'].lower()
     client: MongoClient = g.mongo_reader_client
-    adar_list = list(
+    return list(
         client[dep_artcc].adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
-    for adar in adar_list:
-        adar['source'] = 'adar'
-    return adar_list
 
 
 def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:

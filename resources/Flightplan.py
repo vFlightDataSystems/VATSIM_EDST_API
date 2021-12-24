@@ -19,8 +19,8 @@ class Flightplan:
 
         self.route = libs.lib.clean_route(self.route, self.departure, self.arrival)
 
-        if not str(self.altitude).isnumeric():
-            self.altitude = int(self.altitude[2:] or 0) * 100
+        alt = ''.join([c for c in self.altitude if c.isdigit()])
+        self.altitude = alt if alt != self.altitude else int(self.altitude or 0) / 100
 
         self.amendment = None
         self.amended_route = None
