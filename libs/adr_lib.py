@@ -5,6 +5,7 @@ from flask import g
 from pymongo import MongoClient
 
 import libs.lib
+import mongo_client
 from resources.Flightplan import Flightplan
 
 
@@ -93,7 +94,7 @@ def amend_adr(route: str, adr: dict) -> dict:
 def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
     dep_artcc = libs.lib.get_airport_info(fp.departure)['artcc'].lower()
-    client: MongoClient = g.mongo_reader_client
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
     nat_list = libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adr_list = client[dep_artcc].adr.find(
         {"dep": fp.departure,

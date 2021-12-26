@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from flask import g
 
 import libs.lib
+import mongo_client
 from resources.Flightplan import Flightplan
 
 
@@ -21,7 +22,7 @@ def get_eligible_adar(fp: Flightplan, departing_runways=None) -> list:
     if departing_runways is None:
         departing_runways = []
     dep_artcc = libs.lib.get_airport_info(fp.departure)['artcc'].lower()
-    client: MongoClient = g.mongo_reader_client
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
     nat_list = libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adar_list = client[dep_artcc].adar.find(
         {'dep': fp.departure, 'dest': fp.arrival, 'aircraft_class': {'$elemMatch': {'$in': nat_list}}},
