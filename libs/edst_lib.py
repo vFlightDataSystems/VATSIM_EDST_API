@@ -34,10 +34,8 @@ def get_edst_data():
     return list(client.edst.data.find({}, {'_id': False}))
 
 
-def format_remaining_route(entry):
-    callsign = entry['callsign']
+def format_remaining_route(entry, remaining_route_data):
     split_route = entry['raw_route'].split()
-    remaining_route_data = get_remaining_route(callsign) or []
     remaining_fixes = [e['fix'] for e in remaining_route_data]
     if first_common_fix := next(iter([fix for fix in remaining_fixes if fix in split_route]), None):
         index = split_route.index(first_common_fix)
@@ -63,9 +61,11 @@ def update_edst_data():
             update_time = entry['update_time']
             if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(hours=1) \
                     and entry['dep'] == dep and entry['dest'] == dest:
+                remaining_route_data = remaining_route_coords(callsign)
                 entry['flightplan'] = vars(fp)
                 entry['update_time'] = datetime.utcnow().strftime(time_mask)
-                entry['remaining_route'] = format_remaining_route(entry)
+                entry['remaining_route_data'] = remaining_route_data
+                entry['remaining_route'] = format_remaining_route(entry, remaining_route_data)
                 client.edst.data.update_one({'callsign': callsign}, {'$set': entry})
                 continue
         if not reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False}):
@@ -89,17 +89,17 @@ def update_edst_data():
             'dest': dest,
             'route': libs.lib.format_route(route),
             'raw_route': route,
-            'route_coords': get_route_coords(expanded_route),
+            'route_data': get_route_coords(expanded_route),
             'altitude': str(int(fp.altitude)).zfill(3),
             'interim': None,
             'hdg': None,
             'spd': None,
+            'hold_fix': None,
             'hold_hdg': None,
             'hold_spd': None,
-            'lat': fp.lat,
-            'lon': fp.lon,
             'remarks': fp.remarks,
             'cid': cid,
+            'free_text': '',
             'flightplan': vars(fp)
         }
         route_key = f'{dep}_{dest}'
@@ -109,8 +109,8 @@ def update_edst_data():
             prefroutes[route_key] = \
                 list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False})) + \
                 list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
-        # entry['adr'] = libs.adr_lib.get_eligible_adr(fp)
-        # entry['adar'] = libs.adar_lib.get_eligible_adar(fp)
+        entry['adr'] = libs.adr_lib.get_eligible_adr(fp)
+        entry['adar'] = libs.adar_lib.get_eligible_adar(fp)
         entry['routes'] = prefroutes[route_key]
         entry['update_time'] = datetime.utcnow().strftime(time_mask)
         client.edst.data.update_one({'callsign': callsign}, {'$set': entry}, upsert=True)
@@ -132,16 +132,16 @@ def update_edst_entry(callsign, data):
     return data
 
 
-def get_route_coords(expanded_route) -> dict:
+def get_route_coords(expanded_route) -> list:
     client: MongoClient = mongo_client.get_reader_client()
-    points = dict()
+    points = []
     for fix in expanded_route.split():
         if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
-            points[fix] = (float(fix_data['lat']), float(fix_data['lon']))
+            points.append({'fix': fix, 'pos': (float(fix_data['lat']), float(fix_data['lon']))})
     return points
 
 
-def get_remaining_route(callsign: str) -> Optional[list]:
+def remaining_route_coords(callsign: str) -> Optional[list]:
     client: MongoClient = mongo_client.get_reader_client()
     if entry := get_edst_entry(callsign):
         route_coords = entry['route_coords']
@@ -153,7 +153,7 @@ def get_remaining_route(callsign: str) -> Optional[list]:
                 return None
             pos = (float(fp.lat), float(fp.lon))
             fixes_sorted = sorted(
-                [{'fix': k, 'distance': geopy.distance.distance(p, pos).miles} for k, p in route_coords.items()],
+                [{'fix': e['fix'], 'distance': geopy.distance.distance(e['pos'], pos).miles} for e in route_coords],
                 key=lambda x: x['distance'])
             fix_distances = {e['fix']: e['distance'] for e in fixes_sorted}
             fixes = [e['fix'] for e in fixes_sorted]
@@ -166,10 +166,10 @@ def get_remaining_route(callsign: str) -> Optional[list]:
                     else fixes_sorted[1]
             if next_fix is None:
                 return None
-            for fix in list(route_coords.keys()):
-                if fix == next_fix['fix']:
+            for i, e in list(route_coords):
+                if e['fix'] == next_fix['fix']:
                     break
                 else:
-                    del route_coords[fix]
-            return [{'fix': fix, 'pos': v, 'distance': fix_distances[fix]} for fix, v in route_coords.items()]
+                    route_coords.remove(e)
+            return [{'fix': e['fix'], 'pos': e['pos'], 'distance': fix_distances[e['fix']]} for e in route_coords]
     return None

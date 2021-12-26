@@ -21,7 +21,7 @@ cache_config = {
 }
 
 update_thread = threading.Thread()
-POOL_TIME = 60
+POOL_TIME = 20
 
 
 def create_app():

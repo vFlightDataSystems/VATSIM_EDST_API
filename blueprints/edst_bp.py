@@ -46,10 +46,3 @@ def _update_entry():
 def _get_all_edst():
     data = libs.edst_lib.get_edst_data()
     return jsonify(data)
-
-
-@edst_blueprint.route('/route/remaining_route/<callsign>')
-def _get_remaining_route(callsign):
-    data = libs.edst_lib.get_remaining_route(callsign)
-    route = libs.lib.format_route(' '.join([e['fix'] for e in data])) if data else None
-    return jsonify({'data': data, 'route': route})

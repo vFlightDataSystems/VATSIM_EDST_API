@@ -26,3 +26,4 @@ class Flightplan:
         self.amended_route = None
         self.lat = None
         self.lon = None
+        self.ground_speed = None
