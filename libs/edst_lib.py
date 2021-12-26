@@ -1,8 +1,10 @@
 import itertools
 import re
-import string
 import random
 from collections import defaultdict
+from typing import Optional
+
+import geopy.distance
 
 from flask import g
 from pymongo import MongoClient
@@ -32,10 +34,25 @@ def get_edst_data():
     return list(client.edst.data.find({}, {'_id': False}))
 
 
+def format_remaining_route(entry):
+    callsign = entry['callsign']
+    split_route = entry['raw_route'].split()
+    remaining_route_data = get_remaining_route(callsign) or []
+    remaining_fixes = [e['fix'] for e in remaining_route_data]
+    if first_common_fix := next(iter([fix for fix in remaining_fixes if fix in split_route]), None):
+        index = split_route.index(first_common_fix)
+        split_route = split_route[index:]
+        if first_common_fix not in split_route:
+            split_route.insert(0, first_common_fix)
+        return libs.lib.format_route(' '.join(split_route))
+    else:
+        return None
+
+
 def update_edst_data():
     client: MongoClient = mongo_client.get_edst_client()
     reader_client: MongoClient = mongo_client.get_reader_client()
-    data = {d['callsign']: d for d in client.edst.data.find()}
+    data = {d['callsign']: d for d in client.edst.data.find({}, {'_id': False})}
     used_cid_list = [d['cid'] for d in data.values()]
     prefroutes = defaultdict(None)
     for callsign, fp in libs.lib.get_all_flightplans().items():
@@ -44,17 +61,18 @@ def update_edst_data():
         if callsign in data.keys():
             entry = data[callsign]
             update_time = entry['update_time']
-            if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(minutes=5) \
+            if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(hours=1) \
                     and entry['dep'] == dep and entry['dest'] == dest:
                 entry['flightplan'] = vars(fp)
                 entry['update_time'] = datetime.utcnow().strftime(time_mask)
+                entry['remaining_route'] = format_remaining_route(entry)
                 client.edst.data.update_one({'callsign': callsign}, {'$set': entry})
                 continue
         if not reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False}):
             continue
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
-        route = libs.lib.format_route(fp.route)
+        route = fp.route
         aircraft_faa = fp.aircraft_faa.split('/')
         try:
             equipment = (aircraft_faa[-1])[0] if len(aircraft_faa) > 1 else ''
@@ -69,8 +87,9 @@ def update_edst_data():
             'beacon': fp.assigned_transponder,
             'dep': dep,
             'dest': dest,
-            'route': route,
-            'expanded_route': expanded_route,
+            'route': libs.lib.format_route(route),
+            'raw_route': route,
+            'route_coords': get_route_coords(expanded_route),
             'altitude': str(int(fp.altitude)).zfill(3),
             'interim': None,
             'hdg': None,
@@ -102,12 +121,55 @@ def update_edst_data():
     client.close()
 
 
-def get_edst_entry(callsign: str):
-    client: MongoClient = g.mongo_edst_client
-    return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
+def get_edst_entry(callsign: str) -> Optional[dict]:
+    client: MongoClient = mongo_client.get_edst_client()
+    return client.edst.data.find_one({'callsign': callsign.upper()}, {'_id': False})
 
 
 def update_edst_entry(callsign, data):
     client: MongoClient = g.mongo_edst_client
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
     return data
+
+
+def get_route_coords(expanded_route) -> dict:
+    client: MongoClient = mongo_client.get_reader_client()
+    points = dict()
+    for fix in expanded_route.split():
+        if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
+            points[fix] = (float(fix_data['lat']), float(fix_data['lon']))
+    return points
+
+
+def get_remaining_route(callsign: str) -> Optional[list]:
+    client: MongoClient = mongo_client.get_reader_client()
+    if entry := get_edst_entry(callsign):
+        route_coords = entry['route_coords']
+        if route_coords:
+            dest = entry['dest']
+            if dest_data := client.navdata.airports.find_one({'icao': dest}, {'_id': False}):
+                route_coords[dest] = [float(dest_data['lat']), float(dest_data['lon'])]
+            if (fp := libs.lib.get_flightplan(callsign)) is None:
+                return None
+            pos = (float(fp.lat), float(fp.lon))
+            fixes_sorted = sorted(
+                [{'fix': k, 'distance': geopy.distance.distance(p, pos).miles} for k, p in route_coords.items()],
+                key=lambda x: x['distance'])
+            fix_distances = {e['fix']: e['distance'] for e in fixes_sorted}
+            fixes = [e['fix'] for e in fixes_sorted]
+            next_fix = None
+            if len(fixes) == 1:
+                next_fix = fixes_sorted[0]
+            else:
+                next_fix = fixes_sorted[0] \
+                    if fixes.index(fixes_sorted[0]['fix']) > fixes.index(fixes_sorted[1]['fix']) \
+                    else fixes_sorted[1]
+            if next_fix is None:
+                return None
+            for fix in list(route_coords.keys()):
+                if fix == next_fix['fix']:
+                    break
+                else:
+                    del route_coords[fix]
+            return [{'fix': fix, 'pos': v, 'distance': fix_distances[fix]} for fix, v in route_coords.items()]
+    return None

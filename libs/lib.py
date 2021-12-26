@@ -227,4 +227,5 @@ def get_all_amended_flightplans() -> defaultdict:
 
 
 def get_flightplan(callsign: str) -> Flightplan:
-    return get_all_flightplans()[callsign]
+    flightplans = get_all_flightplans()
+    return flightplans[callsign] if callsign in flightplans.keys() else None
