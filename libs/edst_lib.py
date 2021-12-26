@@ -113,9 +113,14 @@ def update_edst_data():
             for r in pdr:
                 r['route'] = libs.lib.format_route(r['route'])
             prefroutes[route_key] = cdr + pdr
-
-        entry['adr'] = libs.adr_lib.get_eligible_adr(fp)
-        entry['adar'] = libs.adar_lib.get_eligible_adar(fp)
+        adr = libs.adr_lib.get_eligible_adr(fp)
+        for a in adr:
+            adr['route'] = libs.lib.format_route(a['route'])
+        adar = libs.adar_lib.get_eligible_adar(fp)
+        for a in adar:
+            adar['route'] = libs.lib.format_route(a['route'])
+        entry['adr'] = adr
+        entry['adar'] = adar
         entry['routes'] = prefroutes[route_key]
         entry['update_time'] = datetime.utcnow().strftime(time_mask)
         client.edst.data.update_one({'callsign': callsign}, {'$set': entry}, upsert=True)
