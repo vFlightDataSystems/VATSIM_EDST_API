@@ -106,9 +106,14 @@ def update_edst_data():
         if route_key not in prefroutes.keys():
             local_dep = re.sub(r'^K?', '', dep)
             local_dest = re.sub(r'^K?', '', dest)
-            prefroutes[route_key] = \
-                list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False})) + \
-                list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
+            cdr = list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
+            pdr = list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
+            for r in cdr:
+                r['route'] = libs.lib.format_route(re.sub(rf'{dep}|{dest}', '', r['route']))
+            for r in pdr:
+                r['route'] = libs.lib.format_route(r['route'])
+            prefroutes[route_key] = cdr + pdr
+
         entry['adr'] = libs.adr_lib.get_eligible_adr(fp)
         entry['adar'] = libs.adar_lib.get_eligible_adar(fp)
         entry['routes'] = prefroutes[route_key]
