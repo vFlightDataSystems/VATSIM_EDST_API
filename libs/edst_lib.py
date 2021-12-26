@@ -115,10 +115,10 @@ def update_edst_data():
             prefroutes[route_key] = cdr + pdr
         adr = libs.adr_lib.get_eligible_adr(fp)
         for a in adr:
-            adr['route'] = libs.lib.format_route(a['route'])
+            a['route'] = libs.lib.format_route(a['route'])
         adar = libs.adar_lib.get_eligible_adar(fp)
         for a in adar:
-            adar['route'] = libs.lib.format_route(a['route'])
+            a['route'] = libs.lib.format_route(a['route'])
         entry['adr'] = adr
         entry['adar'] = adar
         entry['routes'] = prefroutes[route_key]
