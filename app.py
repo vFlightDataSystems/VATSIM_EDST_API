@@ -1,3 +1,5 @@
+import atexit
+
 from flask import Flask
 # from flask_cors import CORS
 import threading
@@ -20,6 +22,7 @@ cache_config = {
     "CACHE_DEFAULT_TIMEOUT": 15
 }
 
+data_lock = threading.Lock()
 update_thread = threading.Thread()
 POOL_TIME = 20
 
@@ -29,13 +32,18 @@ def create_app():
     # CORS(app)
     register_extensions(app)
 
+    def interrupt():
+        global update_thread
+        update_thread.cancel()
+
     def loop():
         global update_thread
-        libs.edst_lib.update_edst_data()
+        with data_lock:
+            libs.edst_lib.update_edst_data()
         update_thread = threading.Timer(POOL_TIME, loop, ())
         update_thread.start()
 
-    def start_updatethread():
+    def start_loop():
         # Do initialisation stuff here
         global update_thread
         # Create your thread
@@ -43,8 +51,8 @@ def create_app():
         update_thread.start()
 
     # Initiate
-    start_updatethread()
-
+    start_loop()
+    atexit.register(interrupt)
     return app
 
 
