@@ -35,16 +35,16 @@ def get_edst_data():
 
 
 def format_remaining_route(entry, remaining_route_data):
-    split_route = entry['raw_route'].split()
-    remaining_fixes = [e['fix'] for e in remaining_route_data]
-    if first_common_fix := next(iter([fix for fix in remaining_fixes if fix in split_route]), None):
-        index = split_route.index(first_common_fix)
-        split_route = split_route[index:]
-        if first_common_fix not in split_route:
-            split_route.insert(0, first_common_fix)
-        return libs.lib.format_route(' '.join(split_route))
-    else:
-        return None
+    if remaining_route_data:
+        split_route = entry['raw_route'].split()
+        remaining_fixes = [e['fix'] for e in remaining_route_data]
+        if first_common_fix := next(iter([fix for fix in remaining_fixes if fix in split_route]), None):
+            index = split_route.index(first_common_fix)
+            split_route = split_route[index:]
+            if first_common_fix not in split_route:
+                split_route.insert(0, first_common_fix)
+            return libs.lib.format_route(' '.join(split_route))
+    return None
 
 
 def update_edst_data():
