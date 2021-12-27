@@ -100,8 +100,8 @@ def expand_route(route: str, airways=None) -> str:
                     start_index = [e['wpt'] for e in sorted_awy].index(route[i - 1])
                     end_index = [e['wpt'] for e in sorted_awy].index(route[i + 1])
                     direction = 1 if end_index - start_index > 0 else -1
-                    for i in range(0, end_index - start_index, direction):
-                        new_route.append(sorted_awy[i+direction]['wpt'])
+                    for j in range(0, end_index - start_index, direction):
+                        new_route.append(sorted_awy[j+direction]['wpt'])
                 except (ValueError, IndexError):
                     # if previous and next waypoint are not part of the airway, the airway is probably outside of the US
                     # with a duplicate name
@@ -112,7 +112,7 @@ def expand_route(route: str, airways=None) -> str:
         else:
             new_route.append(segment)
 
-    return ' '.join(new_route)
+    return ' '.join(list(dict.fromkeys(new_route)))
 
 
 def clean_route(route, dep='', dest=''):
