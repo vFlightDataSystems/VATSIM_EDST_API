@@ -176,7 +176,7 @@ def get_remaining_route_data(callsign: str) -> Optional[list]:
                     else fixes_sorted[1]
             if next_fix is None:
                 return None
-            for i, e in list(route_data):
+            for e in list(route_data):
                 if e['fix'] == next_fix['fix']:
                     break
                 else:
