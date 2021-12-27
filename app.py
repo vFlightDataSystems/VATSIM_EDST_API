@@ -22,7 +22,7 @@ cache_config = {
     "CACHE_DEFAULT_TIMEOUT": 15
 }
 
-data_lock = threading.Lock()
+# data_lock = threading.Lock()
 update_thread = threading.Thread()
 POOL_TIME = 20
 
@@ -38,8 +38,8 @@ def create_app():
 
     def loop():
         global update_thread
-        with data_lock:
-            libs.edst_lib.update_edst_data()
+        # with data_lock:
+        libs.edst_lib.update_edst_data()
         update_thread = threading.Timer(POOL_TIME, loop, ())
         update_thread.start()
 
