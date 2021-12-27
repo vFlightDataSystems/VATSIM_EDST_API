@@ -87,10 +87,12 @@ def expand_route(route: str, airways=None) -> str:
     :param airways:
     :return:
     """
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
     route = route.split()
     if airways is None:
         airways = []
     new_route = []
+    prev_segment = None
     for i, segment in enumerate(route):
         if segment in airways or airways == []:
             awy = get_airway(segment)
@@ -101,7 +103,7 @@ def expand_route(route: str, airways=None) -> str:
                     end_index = [e['wpt'] for e in sorted_awy].index(route[i + 1])
                     direction = 1 if end_index - start_index > 0 else -1
                     for j in range(0, end_index - start_index, direction):
-                        new_route.append(sorted_awy[j+direction]['wpt'])
+                        new_route.append(sorted_awy[j + direction]['wpt'])
                 except (ValueError, IndexError):
                     # if previous and next waypoint are not part of the airway, the airway is probably outside of the US
                     # with a duplicate name
@@ -109,8 +111,16 @@ def expand_route(route: str, airways=None) -> str:
                     new_route.append(segment)
             else:
                 new_route.append(segment)
+        elif segment[-1].isdigit() and \
+                (procedure := client.navdata.procedures.find_one({'procedure': segment.upper()}, {'_id': False})):
+            if transition := next(iter(r for r in procedure['routes'] if r['transition'] == prev_segment)):
+                for fix in transition['route']:
+                    new_route.append(fix)
+            else:
+                new_route.append(segment)
         else:
             new_route.append(segment)
+        prev_segment = segment
 
     return ' '.join(list(dict.fromkeys(new_route)))
 
