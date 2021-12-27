@@ -158,7 +158,7 @@ def get_remaining_route_data(callsign: str) -> Optional[list]:
         if route_data:
             dest = entry['dest']
             if dest_data := client.navdata.airports.find_one({'icao': dest}, {'_id': False}):
-                route_data[dest] = [float(dest_data['lat']), float(dest_data['lon'])]
+                route_data.append({'fix': dest, 'pos': (float(dest_data['lat']), float(dest_data['lon']))})
             if (fp := libs.lib.get_flightplan(callsign)) is None:
                 return None
             pos = (float(fp.lat), float(fp.lon))
