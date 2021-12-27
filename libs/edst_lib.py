@@ -16,6 +16,7 @@ import libs.adr_lib
 import libs.adar_lib
 
 CID_OVERFLOW_RANGE = list('CFNPTVWY')  # list(string.ascii_lowercase)
+NM_CONVERSION_FACTOR = 0.86898
 
 time_mask = '%Y-%m-%d %H:%M:%S.%f'
 cid_list = set(f'{a}{b}{c}' for a, b, c in itertools.product(range(10), range(10), range(10)))
@@ -165,7 +166,8 @@ def get_remaining_route_data(callsign: str) -> Optional[list]:
                 return None
             pos = (float(fp.lat), float(fp.lon))
             fixes_sorted = sorted(
-                [{'fix': e['fix'], 'distance': geopy.distance.distance(e['pos'], pos).miles} for e in route_data],
+                [{'fix': e['fix'], 'distance': geopy.distance.distance(e['pos'], pos).miles * NM_CONVERSION_FACTOR}
+                 for e in route_data],
                 key=lambda x: x['distance'])
             fix_distances = {e['fix']: e['distance'] for e in fixes_sorted}
             fixes = [e['fix'] for e in fixes_sorted]
