@@ -4,7 +4,9 @@ import random
 from collections import defaultdict
 from typing import Optional
 
+import geopandas
 import geopy.distance
+from shapely.geometry import Point, shape
 
 from flask import g
 from pymongo import MongoClient
@@ -17,6 +19,7 @@ import libs.adar_lib
 
 CID_OVERFLOW_RANGE = list('CFNPTVWY')  # list(string.ascii_lowercase)
 NM_CONVERSION_FACTOR = 0.86898
+KM_NM_CONVERSION_FACTOR = 0.53996
 
 time_mask = '%Y-%m-%d %H:%M:%S.%f'
 cid_list = set(f'{a}{b}{c}' for a, b, c in itertools.product(range(10), range(10), range(10)))
@@ -33,6 +36,23 @@ def get_cid(used_cid_list) -> str:
 def get_edst_data():
     client: MongoClient = g.mongo_edst_client
     return list(client.edst.data.find({}, {'_id': False}))
+
+
+def get_artcc_edst_data(artcc):
+    client: MongoClient = g.mongo_reader_client
+    edst_data = client.edst.data.find({}, {'_id': False})
+    boundary_data = client[artcc.lower()].boundary_data.find_one({}, {'_id': False})
+    geometry = geopandas.GeoSeries(shape(boundary_data['geometry'])).set_crs(epsg=4326)
+    artcc_data = []
+    # geometry.plot()
+    # plt.savefig('test.jpg')
+    for e in edst_data:
+        pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])]).set_crs(epsg=4326)
+        dist = (float(geometry.to_crs("EPSG:3857").distance(pos.to_crs("EPSG:3857"))) / 1000) * KM_NM_CONVERSION_FACTOR
+        if dist < 150:
+            print(e['callsign'], dist)
+            artcc_data.append(e)
+    return artcc_data
 
 
 def format_remaining_route(entry, remaining_route_data):
@@ -69,7 +89,8 @@ def update_edst_data():
                 entry['remaining_route'] = format_remaining_route(entry, remaining_route_data)
                 client.edst.data.update_one({'callsign': callsign}, {'$set': entry})
                 continue
-        if not reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False}):
+        if not (reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False})
+                or reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False})):
             continue
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)

@@ -46,3 +46,9 @@ def _update_entry():
 def _get_all_edst():
     data = libs.edst_lib.get_edst_data()
     return jsonify(data)
+
+
+@edst_blueprint.route('/artcc/<artcc>')
+def _get_artcc_edst(artcc):
+    data = libs.edst_lib.get_artcc_edst_data(artcc)
+    return jsonify(data)

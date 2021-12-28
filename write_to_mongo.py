@@ -314,6 +314,19 @@ def add_mongo_users():
         )
 
 
+def write_boundary_data():
+    client = get_admin_mongo_client()
+    with open('Boundaries.geojson', 'r') as f:
+        boundary_data = [e for e in json.load(f)['features'] if re.match(r'K\S{3}', e['properties']['id'])]
+        for e in boundary_data:
+            artcc = e['properties']['id'][1:].lower()
+            del e['properties']['label_lat']
+            del e['properties']['label_lon']
+            del e['type']
+            client[artcc]['boundary_data'].insert_one(e)
+    client.close()
+
+
 if __name__ == '__main__':
     # write_navdata(nav_db_name)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
@@ -327,6 +340,7 @@ if __name__ == '__main__':
     #         write_adr(filepath, dp_data)
     #     if path.stem[:4] == 'adar':
     #         write_adar(filepath, dp_data, star_data)
-    write_faa_data(fd_db_name)
+    # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
+    write_boundary_data()
