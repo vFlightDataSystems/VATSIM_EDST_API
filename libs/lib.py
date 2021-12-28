@@ -80,17 +80,14 @@ def get_airways_on_route(route: str):
     return list(filter(None, [get_airway(s) for s in route.split()]))
 
 
-def expand_route(route: str, airways=None) -> str:
+def expand_route(route: str) -> str:
     """
 
     :param route:
-    :param airways:
     :return:
     """
     client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
     route = route.split()
-    if airways is None:
-        airways = []
     new_route = []
     prev_segment = None
     for i, segment in enumerate(route):

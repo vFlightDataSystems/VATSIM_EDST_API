@@ -41,7 +41,7 @@ def amend_adr(route: str, adr: dict) -> dict:
     if adr_route == route[:len(adr_route)]:
         adr_route = ''
     else:
-        expanded_adr = libs.lib.expand_route(adr_route, airways=adr['airways']).split()
+        expanded_adr = libs.lib.expand_route(adr_route).split()
         expanded_route = libs.lib.expand_route(route).split()
         tfix_list = adr['tfixes']
         tfixes = [e['tfix'] for e in tfix_list]
