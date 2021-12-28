@@ -50,7 +50,6 @@ def get_artcc_edst_data(artcc):
         pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])]).set_crs(epsg=4326)
         dist = (float(geometry.to_crs("EPSG:3857").distance(pos.to_crs("EPSG:3857"))) / 1000) * KM_NM_CONVERSION_FACTOR
         if dist < 150:
-            print(e['callsign'], dist)
             artcc_data.append(e)
     return artcc_data
 
