@@ -91,7 +91,7 @@ def expand_route(route: str) -> str:
     new_route = []
     prev_segment = None
     for i, segment in enumerate(route):
-        if awy := get_airway(segment):
+        if segment[-1].isdigit() and (awy := get_airway(segment)):
             if 0 < i < len(route):
                 try:
                     sorted_awy = sorted(awy, key=lambda e: e['sequence'])
