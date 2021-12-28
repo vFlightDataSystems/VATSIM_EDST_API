@@ -94,9 +94,8 @@ def expand_route(route: str, airways=None) -> str:
     new_route = []
     prev_segment = None
     for i, segment in enumerate(route):
-        if segment in airways or airways == []:
-            awy = get_airway(segment)
-            if awy and 0 < i < len(route):
+        if awy := get_airway(segment):
+            if 0 < i < len(route):
                 try:
                     sorted_awy = sorted(awy, key=lambda e: e['sequence'])
                     start_index = [e['wpt'] for e in sorted_awy].index(route[i - 1])
