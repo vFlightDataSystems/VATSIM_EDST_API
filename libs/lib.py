@@ -94,7 +94,7 @@ def expand_route(route: str) -> str:
         if segment[-1].isdigit() and (awy := get_airway(segment)):
             if 0 < i < len(route):
                 try:
-                    sorted_awy = sorted(awy, key=lambda e: e['sequence'])
+                    sorted_awy = sorted(awy, key=lambda e: int(e['sequence']))
                     start_index = [e['wpt'] for e in sorted_awy].index(route[i - 1])
                     end_index = [e['wpt'] for e in sorted_awy].index(route[i + 1])
                     direction = 1 if end_index - start_index > 0 else -1
