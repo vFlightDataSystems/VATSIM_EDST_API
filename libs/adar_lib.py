@@ -21,7 +21,10 @@ def get_eligible_adar(fp: Flightplan, departing_runways=None) -> list:
     """
     if departing_runways is None:
         departing_runways = []
-    dep_artcc = libs.lib.get_airport_info(fp.departure)['artcc'].lower()
+    dep_info = libs.lib.get_airport_info(fp.departure)
+    if not dep_info:
+        return []
+    dep_artcc = dep_info['artcc'].lower()
     client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
     nat_list = libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL']
     adar_list = client[dep_artcc].adar.find(
