@@ -113,7 +113,7 @@ def expand_route(route: str, airways=None) -> str:
                 new_route.append(segment)
         elif segment[-1].isdigit() and \
                 (procedure := client.navdata.procedures.find_one({'procedure': segment.upper()}, {'_id': False})):
-            if transition := next(iter(r for r in procedure['routes'] if r['transition'] == prev_segment)):
+            if transition := next(iter([r for r in procedure['routes'] if r['transition'] == prev_segment])):
                 for fix in transition['route']:
                     new_route.append(fix)
             else:
