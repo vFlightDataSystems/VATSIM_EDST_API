@@ -42,13 +42,14 @@ def get_artcc_edst_data(artcc):
     client: MongoClient = g.mongo_reader_client
     edst_data = client.edst.data.find({}, {'_id': False})
     boundary_data = client[artcc.lower()].boundary_data.find_one({}, {'_id': False})
-    geometry = geopandas.GeoSeries(shape(boundary_data['geometry'])).set_crs(epsg=4326)
+    geometry = geopandas.GeoSeries(shape(boundary_data['geometry'])).set_crs(epsg=4326).to_crs("EPSG:3857")
     artcc_data = []
     # geometry.plot()
-    # plt.savefig('test.jpg')
+    # plt.savefig(f'{artcc}_boundary_plot.jpg')
     for e in edst_data:
-        pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])]).set_crs(epsg=4326)
-        dist = (float(geometry.to_crs("EPSG:3857").distance(pos.to_crs("EPSG:3857"))) / 1000) * KM_NM_CONVERSION_FACTOR
+        pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])])\
+            .set_crs(epsg=4326).to_crs("EPSG:3857")
+        dist = (float(geometry.distance(pos)) / 1000) * KM_NM_CONVERSION_FACTOR
         if dist < 150:
             artcc_data.append(e)
     return artcc_data
