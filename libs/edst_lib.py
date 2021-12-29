@@ -75,6 +75,8 @@ def update_edst_data():
     used_cid_list = [d['cid'] for d in data.values()]
     prefroutes = defaultdict(None)
     for callsign, fp in libs.lib.get_all_flightplans().items():
+        if not ((20 < float(fp.lat) < 55) and (-135 < float(fp.lon) < -40)):
+            continue
         dep = fp.departure
         dest = fp.arrival
         if callsign in data.keys():
