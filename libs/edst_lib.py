@@ -175,7 +175,7 @@ def get_edst_entry(callsign: str) -> Optional[dict]:
 def update_edst_entry(callsign, data):
     client: MongoClient = g.mongo_edst_client
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
-    return client.edst_data.find_one({'callsign': callsign}, {'_id': False})
+    return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
 
 
 def get_route_data(expanded_route) -> list:
