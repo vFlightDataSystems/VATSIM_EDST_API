@@ -47,7 +47,7 @@ def get_artcc_edst_data(artcc):
     # geometry.plot()
     # plt.savefig(f'{artcc}_boundary_plot.jpg')
     for e in edst_data:
-        pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])])\
+        pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])]) \
             .set_crs(epsg=4326).to_crs("EPSG:3857")
         dist = (float(geometry.distance(pos)) / 1000) * KM_NM_CONVERSION_FACTOR
         if dist < 150:
@@ -77,6 +77,7 @@ def update_edst_data():
     for callsign, fp in libs.lib.get_all_flightplans().items():
         if not ((20 < float(fp.lat) < 55) and (-135 < float(fp.lon) < -40)):
             continue
+        pos = (float(fp.lat), float(fp.lon))
         dep = fp.departure
         dest = fp.arrival
         if callsign in data.keys():
@@ -84,6 +85,11 @@ def update_edst_data():
             update_time = entry['update_time']
             if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(hours=1) \
                     and entry['dep'] == dep and entry['dest'] == dest:
+                if entry['departing'] is not False:
+                    dep_info = reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False})
+                    entry['departing'] = geopy.distance.distance(
+                        (float(dep_info['lat']), float(dep_info['lon'])), pos).miles * NM_CONVERSION_FACTOR < 20 \
+                        if dep_info else False
                 remaining_route_data = get_remaining_route_data(callsign)
                 entry['flightplan'] = vars(fp)
                 entry['update_time'] = datetime.utcnow().strftime(time_mask)
@@ -91,9 +97,11 @@ def update_edst_data():
                 entry['remaining_route'] = format_remaining_route(entry, remaining_route_data)
                 client.edst.data.update_one({'callsign': callsign}, {'$set': entry})
                 continue
-        if not (reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False})
-                or reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False})):
+        dep_info = reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False})
+        if not (dep_info or reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False})):
             continue
+        departing = geopy.distance.distance((float(dep_info['lat']), float(dep_info['lon'])),
+                                            pos).miles * NM_CONVERSION_FACTOR < 20 if dep_info else False
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
         route = fp.route
@@ -124,6 +132,7 @@ def update_edst_data():
             'remarks': fp.remarks,
             'cid': cid,
             'free_text': '',
+            'departing': departing,
             'flightplan': vars(fp)
         }
         route_key = f'{dep}_{dest}'
