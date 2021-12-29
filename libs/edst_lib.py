@@ -142,17 +142,18 @@ def update_edst_data():
             cdr = list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
             pdr = list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
             for r in cdr:
+                r['route_data'] = get_route_data(libs.lib.expand_route(r['route']))
                 r['route'] = libs.lib.format_route(re.sub(rf'{dep}|{dest}', '', r['route']))
-                r['expanded_route_data'] = get_route_data(libs.lib.expand_route(r['route']))
             for r in pdr:
+                r['route_data'] = get_route_data(libs.lib.expand_route(r['route']))
                 r['route'] = libs.lib.format_route(r['route'])
-                r['expanded_route_data'] = get_route_data(libs.lib.expand_route(r['route']))
             prefroutes[route_key] = cdr + pdr
         adr = libs.adr_lib.get_eligible_adr(fp)
         for a in adr:
             a['route'] = libs.lib.format_route(a['route'])
         adar = libs.adar_lib.get_eligible_adar(fp)
         for a in adar:
+            a['route_data'] = get_route_data(libs.lib.expand_route(a['route']))
             a['route'] = libs.lib.format_route(a['route'])
         entry['adr'] = adr
         entry['adar'] = adar
