@@ -34,11 +34,14 @@ def _get_entry(callsign):
 
 @edst_blueprint.route('/entry/update', methods=['POST'])
 def _update_entry():
-    callsign = request.form.get('callsign', default=None)
+    post_data = request.get_json()
+    if not post_data or 'callsign' not in post_data.keys():
+        return jsonify(204)
+    callsign = post_data['callsign']
     data = {}
     for key in EDST_KEYS:
-        if v := request.form.get(key, default=None):
-            data[key] = v
+        if key in post_data.keys():
+            data[key] = post_data[key]
     ret_data = libs.edst_lib.update_edst_entry(callsign, data)
     return jsonify(ret_data)
 
