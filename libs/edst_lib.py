@@ -46,7 +46,10 @@ def get_artcc_edst_data(artcc):
     artcc_data = []
     # geometry.plot()
     # plt.savefig(f'{artcc}_boundary_plot.jpg')
+    flightplans = libs.lib.get_all_flightplans().keys()
     for e in edst_data:
+        if e['callsign'] not in flightplans:
+            continue
         pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])]) \
             .set_crs(epsg=4326).to_crs("EPSG:3857")
         dist = (float(geometry.distance(pos)) / 1000) * KM_NM_CONVERSION_FACTOR
@@ -83,7 +86,7 @@ def update_edst_data():
         if callsign in data.keys():
             entry = data[callsign]
             update_time = entry['update_time']
-            if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(hours=1) \
+            if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(minutes=30) \
                     and entry['dep'] == dep and entry['dest'] == dest:
                 if entry['departing'] is not False:
                     dep_info = reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False})
@@ -162,7 +165,7 @@ def update_edst_data():
         client.edst.data.update_one({'callsign': callsign}, {'$set': entry}, upsert=True)
     for callsign, entry in data.items():
         update_time = entry['update_time']
-        if datetime.strptime(update_time, time_mask) + timedelta(hours=1) < datetime.utcnow():
+        if datetime.strptime(update_time, time_mask) + timedelta(minutes=30) < datetime.utcnow():
             client.edst.data.delete_one({'callsign': callsign})
     client.close()
 
