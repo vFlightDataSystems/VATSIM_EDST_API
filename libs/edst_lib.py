@@ -204,7 +204,7 @@ def get_remaining_route_data(callsign: str) -> Optional[list]:
             if dest_data := client.navdata.airports.find_one({'icao': dest}, {'_id': False}):
                 route_data.append({'fix': dest, 'pos': (float(dest_data['lat']), float(dest_data['lon']))})
             if (fp := libs.lib.get_flightplan(callsign)) is None:
-                return None
+                return []
             pos = (float(fp.lat), float(fp.lon))
             fixes_sorted = sorted(
                 [{'fix': e['fix'], 'distance': geopy.distance.distance(e['pos'], pos).miles * NM_CONVERSION_FACTOR}
@@ -220,11 +220,11 @@ def get_remaining_route_data(callsign: str) -> Optional[list]:
                     if fixes.index(fixes_sorted[0]['fix']) > fixes.index(fixes_sorted[1]['fix']) \
                     else fixes_sorted[1]
             if next_fix is None:
-                return None
+                return []
             for e in list(route_data):
                 if e['fix'] == next_fix['fix']:
                     break
                 else:
                     route_data.remove(e)
             return [{'fix': e['fix'], 'pos': e['pos'], 'distance': fix_distances[e['fix']]} for e in route_data]
-    return None
+    return []
