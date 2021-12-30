@@ -60,7 +60,7 @@ def get_artcc_edst_data(artcc):
 
 def format_remaining_route(entry, remaining_route_data):
     if remaining_route_data:
-        split_route = entry['raw_route'].split()
+        split_route = re.sub(r'\.+', ' ', entry['route']).strip().split()
         remaining_fixes = [e['fix'] for e in remaining_route_data]
         if first_common_fix := next(iter([fix for fix in remaining_fixes if fix in split_route]), None):
             index = split_route.index(first_common_fix)
@@ -123,7 +123,6 @@ def update_edst_data():
             'dep': dep,
             'dest': dest,
             'route': libs.lib.format_route(route),
-            'raw_route': route,
             'route_data': get_route_data(expanded_route),
             'altitude': str(int(fp.altitude)).zfill(3),
             'interim': None,
@@ -177,6 +176,9 @@ def get_edst_entry(callsign: str) -> Optional[dict]:
 
 def update_edst_entry(callsign, data):
     client: MongoClient = g.mongo_edst_client
+    if 'route' in data.keys():
+        expanded_route = libs.lib.expand_route(re.sub(r'\.+', ' ', data['route']).strip())
+        data['route_data'] = get_route_data(expanded_route)
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
     return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
 
