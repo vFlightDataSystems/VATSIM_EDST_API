@@ -224,6 +224,7 @@ def get_all_flightplans() -> defaultdict:
             fp = Flightplan(flightplan)
             fp.lat = pilot['latitude']
             fp.lon = pilot['longitude']
+            fp.heading = pilot['heading']
             fp.ground_speed = pilot['groundspeed']
             flightplans[pilot['callsign']] = fp
     return flightplans
