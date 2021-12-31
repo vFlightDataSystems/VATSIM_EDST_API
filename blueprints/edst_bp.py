@@ -59,6 +59,6 @@ def _get_artcc_edst(artcc):
 
 
 @edst_blueprint.route('/boundary_data/<artcc>')
-def _get_artcc_edst(artcc):
+def _get_boundary_data(artcc):
     data = libs.edst_lib.get_boundary_data(artcc)
     return jsonify(data)
