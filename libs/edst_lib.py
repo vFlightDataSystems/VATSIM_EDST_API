@@ -111,6 +111,7 @@ def update_edst_data():
             continue
         departing = geopy.distance.distance((float(dep_info['lat']), float(dep_info['lon'])),
                                             pos).miles * NM_CONVERSION_FACTOR < 20 if dep_info else False
+        dep_artcc = dep_info['artcc'].lower() if dep_info else None
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
         route = fp.route
@@ -127,6 +128,7 @@ def update_edst_data():
             'equipment': equipment,
             'beacon': fp.assigned_transponder,
             'dep': dep,
+            'dep_artcc': dep_artcc,
             'dest': dest,
             'route': libs.lib.format_route(route),
             'route_data': get_route_data(expanded_route),
