@@ -170,5 +170,5 @@ def get_route_data(expanded_route) -> list:
     points = []
     for fix in expanded_route.split():
         if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
-            points.append({'fix': fix, 'pos': (float(fix_data['lat']), float(fix_data['lon']))})
+            points.append({'fix': fix, 'pos': (float(fix_data['lon']), float(fix_data['lat']))})
     return points
