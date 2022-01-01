@@ -70,8 +70,7 @@ def format_remaining_route(entry, remaining_route_data):
         remaining_fixes = [e['fix'] for e in remaining_route_data]
         if first_common_fix := next(iter([fix for fix in remaining_fixes if fix in split_route]), None):
             index = split_route.index(first_common_fix)
-            if index > 0:
-                split_route = split_route[index-1:]
+            split_route = split_route[index:]
             if remaining_fixes[0] not in split_route:
                 split_route.insert(0, remaining_fixes[0])
 
