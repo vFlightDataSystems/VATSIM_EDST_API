@@ -66,7 +66,7 @@ def get_boundary_data(artcc):
 
 def update_edst_data():
     client: MongoClient = mongo_client.get_edst_client()
-    reader_client: MongoClient = mongo_client.get_reader_client()
+    reader_client: MongoClient = mongo_client.reader_client
     data = {d['callsign']: d for d in client.edst.data.find({}, {'_id': False})}
     used_cid_list = [d['cid'] for d in data.values()]
     prefroutes = defaultdict(None)
@@ -166,7 +166,7 @@ def update_edst_entry(callsign, data):
 
 
 def get_route_data(expanded_route) -> list:
-    client: MongoClient = mongo_client.get_reader_client()
+    client: MongoClient = mongo_client.reader_client
     points = []
     for fix in expanded_route.split():
         if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):

@@ -85,3 +85,6 @@ def close_edst_mongo_client(e=None):
     client = g.pop('mongo_edst_client', None)
     if client is not None:
         client.close()
+
+
+reader_client = get_reader_client()

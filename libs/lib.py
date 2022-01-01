@@ -21,7 +21,7 @@ clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]
 
 
 def get_airports_in_artcc(artcc) -> list:
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     airports = client.navdata.airports.find({"artcc": artcc}, {'_id': False})
     return list(filter(None, [a['icao'] for a in airports]))
 
@@ -32,7 +32,7 @@ def get_nat_types(aircraft: str) -> list:
     :param aircraft: aircraft icao code
     :return: aircraft nat types
     """
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     nat_list = list(client.flightdata.nat_types.find({"aircraft_type": aircraft}, {'_id': False}))
     return [e['nat'] for e in nat_list]
 
@@ -43,7 +43,7 @@ def get_airway(airway: str) -> list:
     :param airway: airway
     :return: list of all fixes in the airway (order matters!)
     """
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     waypoints = list(sorted(client.navdata.airways.find(
         {"airway": {"$in": [airway]}}, {'_id': False}), key=lambda x: int(x['sequence'])))
     return waypoints
@@ -55,13 +55,13 @@ def get_airport_info(airport: str) -> dict:
     :param airport: ICAO code
     :return: information about given airport
     """
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     airport_data = client.navdata.airports.find_one({'icao': airport.upper()}, {'_id': False})
     return airport_data
 
 
 def format_route(route: str):
-    client = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client = g.mongo_reader_client if g else mongo_client.reader_client
     route = route.split()
     new_route = ''
     prev_is_fix = True
@@ -90,7 +90,7 @@ def expand_route(route: str) -> str:
     :param route:
     :return:
     """
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     route = route.split()
     new_route = []
     prev_segment = None
@@ -133,7 +133,7 @@ def clean_route(route, dep='', dest=''):
 
 
 def get_faa_prd(dep: str, dest: str) -> list:
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     local_dep = re.sub(r'^K?', '', dep)
     local_dest = re.sub(r'^K?', '', dest)
     return list(client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
@@ -146,7 +146,7 @@ def get_faa_cdr(dep: str, dest: str) -> list:
 
 def get_adar(dep: str, dest: str) -> list:
     dep_artcc = get_airport_info(dep)['artcc'].lower()
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     return list(
         client[dep_artcc].adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
 
@@ -179,7 +179,7 @@ def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
 
 
 def assign_beacon(fp: Flightplan) -> Optional[str]:
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.get_reader_client()
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     code = None
     if fp and (dep_airport_info := client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False})):
         arr_airport_info = client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
