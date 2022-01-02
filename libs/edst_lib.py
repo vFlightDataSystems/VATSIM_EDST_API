@@ -91,7 +91,7 @@ def update_edst_data():
             continue
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
-        beacon = assign_beacon(fp, codes_in_use)
+        beacon = assign_beacon(fp, codes_in_use) or fp.assigned_transponder
         codes_in_use.append(beacon)
         route = fp.route
         aircraft_faa = fp.aircraft_faa.split('/')
