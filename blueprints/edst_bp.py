@@ -5,8 +5,8 @@ import libs.edst_lib
 import mongo_client
 
 EDST_KEYS = ['aircraft', 'type', 'equipment', 'route', 'route_data', 'altitude', 'interim', 'hdg', 'spd',
-             'previous_route', 'previous_route_data', 'hold_fix', 'hold_hdg', 'hold_spd', 'hold_alt', 'free_text',
-             'beacon']
+             'previous_route', 'previous_route_data',
+             'hold_data', 'scratchpad', 'beacon']
 
 edst_blueprint = Blueprint('edst', __name__)
 

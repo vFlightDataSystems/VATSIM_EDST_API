@@ -4,9 +4,9 @@ import random
 from collections import defaultdict
 from typing import Optional
 
-import geopandas
-import geopy.distance
-from shapely.geometry import Point, shape
+# import geopandas
+# import geopy.distance
+# from shapely.geometry import Point, shape
 
 from flask import g
 from pymongo import MongoClient
@@ -120,7 +120,7 @@ def update_edst_data():
             'hold_spd': None,
             'remarks': fp.remarks,
             'cid': cid,
-            'free_text': '',
+            'scratchpad': '',
             'flightplan': vars(fp)
         }
         route_key = f'{dep}_{dest}'
