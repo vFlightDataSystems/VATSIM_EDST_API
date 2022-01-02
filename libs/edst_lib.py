@@ -192,7 +192,7 @@ def assign_beacon(fp: Flightplan, codes_in_use) -> Optional[str]:
         for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
             start = int(entry['range_start'], 8)
             end = int(entry['range_end'], 8)
-            if beacon_range := list(set(range(start, end)) - codes_in_use):
+            if beacon_range := list(set(range(start, end)) - set(codes_in_use)):
                 code = f'{random.choice(beacon_range):o}'.zfill(4)
                 break
     return code
