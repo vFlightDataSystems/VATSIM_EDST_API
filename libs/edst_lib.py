@@ -16,6 +16,7 @@ import mongo_client
 import libs.lib
 import libs.adr_lib
 import libs.adar_lib
+from resources.Flightplan import Flightplan
 
 CID_OVERFLOW_RANGE = list('CFNPTVWY')  # list(string.ascii_lowercase)
 NM_CONVERSION_FACTOR = 0.86898
@@ -69,6 +70,7 @@ def update_edst_data():
     reader_client: MongoClient = mongo_client.reader_client
     data = {d['callsign']: d for d in client.edst.data.find({}, {'_id': False})}
     used_cid_list = [d['cid'] for d in data.values()]
+    codes_in_use = [d['beacon'] for d in data.values()]
     prefroutes = defaultdict(None)
     for callsign, fp in libs.lib.get_all_flightplans().items():
         if not ((20 < float(fp.lat) < 55) and (-135 < float(fp.lon) < -40)):
@@ -89,6 +91,8 @@ def update_edst_data():
             continue
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
+        beacon = assign_beacon(fp, codes_in_use)
+        codes_in_use.append(beacon)
         route = fp.route
         aircraft_faa = fp.aircraft_faa.split('/')
         try:
@@ -101,7 +105,7 @@ def update_edst_data():
             'callsign': callsign,
             'type': fp.aircraft_short,
             'equipment': equipment,
-            'beacon': fp.assigned_transponder,
+            'beacon': beacon,
             'dep': dep,
             'dep_info': dep_info,
             'dest': dest,
@@ -172,3 +176,23 @@ def get_route_data(expanded_route) -> list:
         if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
             points.append({'fix': fix, 'pos': (float(fix_data['lon']), float(fix_data['lat']))})
     return points
+
+
+def assign_beacon(fp: Flightplan, codes_in_use) -> Optional[str]:
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    code = None
+    if fp and (dep_airport_info := client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False})):
+        arr_airport_info = client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
+        dep_artcc = dep_airport_info['artcc']
+        arr_artcc = arr_airport_info['artcc'] if arr_airport_info else None
+        beacon_ranges = client.flightdata.beacons.find(
+            {'artcc': dep_artcc, 'priority': {'$regex': r'I[PST]?-?\d*', '$options': 'i'}}, {'_id': False}) \
+            if dep_artcc == arr_artcc else client.flightdata.beacons.find(
+            {'artcc': dep_artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
+        for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
+            start = int(entry['range_start'], 8)
+            end = int(entry['range_end'], 8)
+            if beacon_range := list(set(range(start, end)) - codes_in_use):
+                code = f'{random.choice(beacon_range):o}'.zfill(4)
+                break
+    return code
