@@ -94,7 +94,7 @@ def update_edst_data():
         used_cid_list.append(cid)
         beacon = assign_beacon(fp, codes_in_use)
         if beacon is None:
-            artcc = dep_info['artcc'].lower() if dep_info else dest_info['artcc'].lower()
+            artcc = dep_info['artcc'].upper() if dep_info else dest_info['artcc'].upper()
             beacon = get_beacon(artcc, codes_in_use)
         codes_in_use.append(beacon)
         route = fp.route
@@ -187,8 +187,8 @@ def assign_beacon(fp: Flightplan, codes_in_use) -> Optional[str]:
     code = None
     if fp and (dep_airport_info := client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False})):
         arr_airport_info = client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
-        dep_artcc = dep_airport_info['artcc']
-        arr_artcc = arr_airport_info['artcc'] if arr_airport_info else None
+        dep_artcc = dep_airport_info['artcc'].upper()
+        arr_artcc = arr_airport_info['artcc'].upper() if arr_airport_info else None
         beacon_ranges = client.flightdata.beacons.find(
             {'artcc': dep_artcc, 'priority': {'$regex': r'I[PST]?-?\d*', '$options': 'i'}}, {'_id': False}) \
             if dep_artcc == arr_artcc else client.flightdata.beacons.find(
