@@ -79,8 +79,6 @@ def update_edst_data():
         dest = fp.arrival
         if callsign in data.keys():
             entry = data[callsign]
-            if entry['beacon'] in codes_in_use:
-                entry['beacon'] = assign_beacon(fp, codes_in_use)
             update_time = entry['update_time']
             if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(minutes=30) \
                     and entry['dep'] == dep and entry['dest'] == dest:
@@ -89,11 +87,15 @@ def update_edst_data():
                 client.edst.data.update_one({'callsign': callsign}, {'$set': entry})
                 continue
         dep_info = reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False})
-        if not (dep_info or reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False})):
+        dest_info = reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False})
+        if not (dep_info or dest_info):
             continue
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
-        beacon = assign_beacon(fp, codes_in_use) or fp.assigned_transponder
+        beacon = assign_beacon(fp, codes_in_use)
+        if beacon is None:
+            artcc = dep_info['artcc'].lower() if dep_info else dest_info['artcc'].lower()
+            beacon = get_beacon(artcc, codes_in_use)
         codes_in_use.append(beacon)
         route = fp.route
         aircraft_faa = fp.aircraft_faa.split('/')
@@ -191,6 +193,21 @@ def assign_beacon(fp: Flightplan, codes_in_use) -> Optional[str]:
             {'artcc': dep_artcc, 'priority': {'$regex': r'I[PST]?-?\d*', '$options': 'i'}}, {'_id': False}) \
             if dep_artcc == arr_artcc else client.flightdata.beacons.find(
             {'artcc': dep_artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
+        for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
+            start = int(entry['range_start'], 8)
+            end = int(entry['range_end'], 8)
+            if beacon_range := list(set(range(start, end)) - set(codes_in_use)):
+                code = f'{random.choice(beacon_range):o}'.zfill(4)
+                break
+    return code
+
+
+def get_beacon(artcc, codes_in_use):
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    beacon_ranges = client.flightdata.beacons.find(
+        {'artcc': artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
+    code = '0000'
+    if beacon_ranges:
         for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
             start = int(entry['range_start'], 8)
             end = int(entry['range_end'], 8)

@@ -63,17 +63,9 @@ def _get_boundary_data(artcc):
 
 
 @edst_blueprint.route('/get_beacon/<artcc>')
-def _assign_beacon(artcc):
+def _get_beacon(artcc):
     client: MongoClient = g.mongo_reader_client
     data = {d['callsign']: d for d in client.edst.data.find({}, {'_id': False})}
     codes_in_use = [d['beacon'] for d in data.values()]
-    beacon_ranges = client.flightdata.beacons.find(
-        {'artcc': artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
-    code = '0000'
-    for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
-        start = int(entry['range_start'], 8)
-        end = int(entry['range_end'], 8)
-        if beacon_range := list(set(range(start, end)) - set(codes_in_use)):
-            code = f'{random.choice(beacon_range):o}'.zfill(4)
-            break
+    code = libs.edst_lib.get_beacon(artcc, codes_in_use)
     return jsonify({'beacon': code})
