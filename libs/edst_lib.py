@@ -205,7 +205,7 @@ def assign_beacon(fp: Flightplan, codes_in_use) -> Optional[str]:
 def get_beacon(artcc, codes_in_use):
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     beacon_ranges = client.flightdata.beacons.find(
-        {'artcc': artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
+        {'artcc': artcc.upper(), 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
     code = '0000'
     if beacon_ranges:
         for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
