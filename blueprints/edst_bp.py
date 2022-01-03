@@ -1,5 +1,3 @@
-import random
-
 from flask import Blueprint, jsonify, request, g
 from pymongo import MongoClient
 

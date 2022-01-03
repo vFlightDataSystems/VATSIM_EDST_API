@@ -92,10 +92,10 @@ def update_edst_data():
             continue
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
-        beacon = assign_beacon(fp, codes_in_use)
-        if beacon is None:
-            artcc = dep_info['artcc'].upper() if dep_info else dest_info['artcc'].upper()
-            beacon = get_beacon(artcc, codes_in_use)
+        beacon = assign_beacon(fp, codes_in_use) or '0000'
+        # if beacon is None:
+        #     artcc = dep_info['artcc'].upper() if dep_info else dest_info['artcc'].upper()
+        #     beacon = get_beacon(artcc, codes_in_use)
         codes_in_use.append(beacon)
         route = fp.route
         aircraft_faa = fp.aircraft_faa.split('/')
