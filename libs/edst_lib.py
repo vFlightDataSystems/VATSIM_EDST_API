@@ -79,6 +79,8 @@ def update_edst_data():
         dest = fp.arrival
         if callsign in data.keys():
             entry = data[callsign]
+            if entry['beacon'] in codes_in_use:
+                entry['beacon'] = assign_beacon(fp, codes_in_use)
             update_time = entry['update_time']
             if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(minutes=30) \
                     and entry['dep'] == dep and entry['dest'] == dest:
