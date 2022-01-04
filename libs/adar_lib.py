@@ -9,7 +9,7 @@ from resources.Flightplan import Flightplan
 
 
 def check_adar_is_active(adar, fp: Flightplan, dep_procedures):
-    valid_alt = not fp.altitude or int(adar['min_alt']) <= int(fp.altitude) <= int(adar['top_alt'])
+    valid_alt = not fp.altitude or int(adar['min_alt']) <= int(fp.altitude)*100 <= int(adar['top_alt'])
     procedure_valid = not adar['dp'] or dep_procedures
     return valid_alt and procedure_valid
 

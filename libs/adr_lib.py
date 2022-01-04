@@ -115,7 +115,7 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
         if departing_runways is None or any(
             [re.match(rf'RW{rw}|ALL', r['transition']) for r in p['routes'] for rw in departing_runways])
     ]
-    alt = int(fp.altitude)
+    alt = int(fp.altitude)*100
     split_route = fp.route.split()
     expanded_route = libs.lib.expand_route(fp.route).split()
     for adr in adr_list:
