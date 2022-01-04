@@ -41,7 +41,7 @@ def get_edst_data():
 
 def get_boundary_data(artcc):
     client: MongoClient = g.mongo_reader_client
-    boundary_data = client[artcc.lower()].boundary_data.find_one({}, {'_id': False})
+    boundary_data = client[artcc.lower()].boundary_data.find_many({}, {'_id': False})
     return boundary_data
 
 
