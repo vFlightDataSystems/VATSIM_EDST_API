@@ -121,7 +121,7 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
     for adr in adr_list:
         dp = adr['dp']
         # check if adr is valid in current configuration
-        if dep_procedures and dp and not any(p == dp for p in dep_procedures):
+        if departing_runways and dep_procedures and dp and not any(p == dp for p in dep_procedures):
             continue
         if (int(adr['min_alt']) <= alt <= int(adr['top_alt'])) or alt == 0:
             for tfix in adr['tfixes']:
