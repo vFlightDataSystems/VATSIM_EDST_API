@@ -70,7 +70,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                         else:
                             adr_route = ''
                         break
-                    except IndexError as e:
+                    except (IndexError, ValueError) as e:
                         logging.Logger(str(e))
                         pass
                 elif info == 'Append':

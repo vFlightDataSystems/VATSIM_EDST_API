@@ -105,28 +105,6 @@ def update_edst_data():
             equipment = ''
         # airways = libs.lib.get_airways_on_route(fp.route)
         expanded_route = libs.lib.expand_route(route)
-        entry = {
-            'callsign': callsign,
-            'type': fp.aircraft_short,
-            'equipment': equipment,
-            'beacon': beacon,
-            'dep': dep,
-            'dep_info': dep_info,
-            'dest': dest,
-            'route': libs.lib.format_route(route),
-            'route_data': get_route_data(expanded_route),
-            'altitude': str(int(fp.altitude)).zfill(3),
-            'interim': None,
-            'hdg': None,
-            'spd': None,
-            'hold_fix': None,
-            'hold_hdg': None,
-            'hold_spd': None,
-            'remarks': fp.remarks,
-            'cid': cid,
-            'scratchpad': '',
-            'flightplan': vars(fp)
-        }
         route_key = f'{dep}_{dest}'
         if route_key not in prefroutes.keys():
             local_dep = re.sub(r'^K?', '', dep)
@@ -142,7 +120,7 @@ def update_edst_data():
             prefroutes[route_key] = cdr + pdr
         adr = libs.adr_lib.get_eligible_adr(fp)
         for a in adr:
-            amendment = libs.adr_lib.amend_adr(fp.route, a)
+            amendment = libs.adr_lib.amend_adr(route, a)
             amendment['adr_amendment'] = libs.lib.format_route(amendment['adr_amendment'])
             amendment['route'] = libs.lib.format_route(amendment['route'])
             a['route'] = libs.lib.format_route(a['route'])
@@ -151,11 +129,12 @@ def update_edst_data():
         for a in adar:
             a['route_data'] = get_route_data(libs.lib.expand_route(a['route']))
             a['route'] = libs.lib.format_route(a['route'])
-
-        entry['adr'] = adr
-        entry['adar'] = adar
-        entry['routes'] = prefroutes[route_key]
-        entry['update_time'] = datetime.utcnow().strftime(time_mask)
+        entry = {'callsign': callsign, 'type': fp.aircraft_short, 'equipment': equipment, 'beacon': beacon, 'dep': dep,
+                 'dep_info': dep_info, 'dest': dest, 'route': libs.lib.format_route(route),
+                 'route_data': get_route_data(expanded_route), 'altitude': str(int(fp.altitude)).zfill(3),
+                 'interim': None, 'hdg': None, 'spd': None, 'hold_fix': None, 'hold_hdg': None, 'hold_spd': None,
+                 'remarks': fp.remarks, 'cid': cid, 'scratchpad': '', 'flightplan': vars(fp), 'adr': adr, 'adar': adar,
+                 'routes': prefroutes[route_key], 'update_time': datetime.utcnow().strftime(time_mask)}
         client.edst.data.update_one({'callsign': callsign}, {'$set': entry}, upsert=True)
     for callsign, entry in data.items():
         update_time = entry['update_time']
