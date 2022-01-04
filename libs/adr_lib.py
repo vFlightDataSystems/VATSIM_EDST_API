@@ -75,7 +75,11 @@ def amend_adr(route: str, adr: dict) -> dict:
                         pass
                 elif info == 'Append':
                     index = expanded_route.index(fix)
-                    route_fix = [e for e in expanded_route[index:] if e in split_route][0]
+                    try:
+                        route_fix = [e for e in expanded_route[index:] if e in split_route][0]
+                    except IndexError:
+                        adr_route = ''
+                        break
                     route_index = split_route.index(route_fix)
                     if adr_route != route[:len(adr_route)]:
                         adr_route += ' ' + split_route[route_index]
