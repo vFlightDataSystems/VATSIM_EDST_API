@@ -61,7 +61,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                     implicit_trigger = tfix_info.split('-')[-1]
                     index = route.index(implicit_trigger)
                     if index:
-                        route_fix = [e for e in expanded_adr.split() if e in route][-1]
+                        route_fix = [e for e in expanded_adr if e in route][-1]
                         adr_route = slice_adr(adr, tfix)
                         route = route[route.index(route_fix):]
                     break
