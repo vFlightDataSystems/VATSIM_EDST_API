@@ -69,7 +69,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                     logging.Logger(str(e))
                     pass
     return {
-        'adr_amendment': adr_route.rstrip('.'),
+        'adr_amendment': adr_route,
         'route': route,
         'order': adr['order'],
         'route_groups': adr['route_groups']
