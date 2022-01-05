@@ -37,6 +37,7 @@ def amend_adr(route: str, adr: dict) -> dict:
     :param adr: adr dictionary as it is returned from the database
     :return: dictionary containing: the adr upto tfix, rest of the route starting after the tfix, route groups for the adr
     """
+    route = libs.lib.format_route(route)
     adr_route = adr['route']
     # if adr matches initial route, there is nothing to do.
     if adr_route == route[:len(adr_route)]:
