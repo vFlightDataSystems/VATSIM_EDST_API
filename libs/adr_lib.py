@@ -44,7 +44,7 @@ def amend_adr(route: str, adr: dict) -> dict:
     else:
         expanded_adr = adr['route_fixes']
         tfixes = adr['transition_fixes']
-        tfix_info_dict = {e['tfix']: e['info'] for e in tfixes}
+        tfix_info_dict = {e['tfix']: e['info'] for e in adr['transition_fixes_details']}
         for tfix in reversed(tfixes):
             # find farthest tfix which triggered the ADR
             tfix_info = tfix_info_dict[tfix]
