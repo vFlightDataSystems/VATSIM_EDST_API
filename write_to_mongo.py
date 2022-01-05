@@ -103,19 +103,22 @@ def write_adar(filename, dp_data, star_data):
                 'top_alt': entry['Upper Altitude'],
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
+                'route_fixes': entry['Route Fixes'],
+                'dep_content_criteria': entry['Departure Content Criteria'].split('\n'),
+                'dest_content_criteria': entry['Destination Content Criteria'].split('\n'),
                 'order': entry['Order'],
-                'route_groups': entry['Route Groups'],
+                'route_groups': entry['Route Groups'].split(),
                 'artcc': artcc
             }
-            for e in alphas:
-                if e[:13] == '(RouteString)':
-                    row['route'] = re.sub(r'\.+', ' ', e[13:]).strip()
-                if e[:9] == '(Airways)':
-                    row['airways'] = e[9:].strip().split()
-                if e[:6] == '(DpId)':
-                    row['dp'] = e[6:].strip()
-                if e[:8] == '(StarId)':
-                    row['star'] = e[8:].strip()
+            for a in alphas:
+                if a[:13] == '(RouteString)':
+                    row['route'] = a[13:].strip()
+                if a[:9] == '(Airways)':
+                    row['airways'] = a[9:].strip().split()
+                if a[:6] == '(DpId)':
+                    row['dp'] = a[6:].strip()
+                if a[:8] == '(StarId)':
+                    row['star'] = a[8:].strip()
 
             star = row['star']
             if star:
@@ -156,10 +159,10 @@ def write_adr(filename, dp_data):
     with open(filename, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for entry in reader:
-            tfixes = []
+            tfixes_details = []
             for tfix in entry['Transition Fixes Detail'].split():
                 info = re.search(r'\((.*)\)', tfix).group(0)
-                tfixes.append({
+                tfixes_details.append({
                     'tfix': tfix.replace(info, ''),
                     'info': info[1:-1]
                 })
@@ -168,23 +171,26 @@ def write_adr(filename, dp_data):
                 'dep': entry['Airports'].split(),
                 'route': '',
                 'dp': '',
-                'airways': '',
-                'route_groups': entry['Route Groups'],
+                'airways': [],
+                'route_groups': entry['Route Groups'].split(),
                 'min_alt': entry['Lower Altitude'],
                 'top_alt': entry['Upper Altitude'],
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
-                'tfixes': tfixes,
+                'transition_fixes': entry['Transition Fixes'],
+                'transition_fixes_details': tfixes_details,
+                'route_fixes': entry['Route Fixes'].split(),
+                'dep_content_criteria': entry['Departure Content Criteria'].split('\n'),
                 'order': entry['Order'],
                 'xlines': entry['XLines']
             }
-            for e in alphas:
-                if e[:13] == '(RouteString)':
-                    row['route'] = re.sub(r'\.+', ' ', e[13:]).strip()
-                if e[:9] == '(Airways)':
-                    row['airways'] = e[9:].strip()
-                if e[:6] == '(DpId)':
-                    row['dp'] = e[6:].strip()
+            for a in alphas:
+                if a[:13] == '(RouteString)':
+                    row['route'] = a[13:].strip()
+                if a[:9] == '(Airways)':
+                    row['airways'] = a[9:].strip().split()
+                if a[:6] == '(DpId)':
+                    row['dp'] = a[6:].strip()
 
             dp = row['dp']
             if dp:
@@ -212,7 +218,10 @@ def write_adr(filename, dp_data):
 def write_faa_data(dbname):
     with open(FAA_PRD_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        rows = list(reader)
+        rows = []
+        for row in reader:
+            row['airways'] = row['airways'].split()
+            rows.append(row)
         client: MongoClient = get_fd_mongo_client()
         db = client[dbname]
         col = db['faa_prd']
@@ -316,7 +325,7 @@ def add_mongo_users():
 
 def write_boundary_data():
     client = get_admin_mongo_client()
-    with open('Boundaries.geojson', 'r') as f:
+    with open('Boundaries.json', 'r') as f:
         boundary_data = [e for e in json.load(f)['features'] if re.match(r'K\S{3}', e['properties']['id'])]
         for e in boundary_data:
             artcc = e['properties']['id'][1:].lower()
@@ -327,20 +336,28 @@ def write_boundary_data():
     client.close()
 
 
+def write_artcc_boundary_data(artcc):
+    client = get_admin_mongo_client()
+    with open(f'{artcc.upper()}_Sector_Data.json', 'r') as f:
+        client[artcc]['boundary_data'].insert_many(json.load(f)['features'])
+    client.close()
+
+
 if __name__ == '__main__':
     # write_navdata(nav_db_name)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
-    # with open(STARDP_FILENAME, 'r') as f:
-    #     stardp_data = json.load(f)
-    # dp_data = {row['procedure']: row for row in stardp_data if row['type'] == 'DP'}
-    # star_data = {row['procedure']: row for row in stardp_data if row['type'] == 'STAR'}
-    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-    #     path = Path(filepath)
-    #     if path.stem[:3] == 'adr':
-    #         write_adr(filepath, dp_data)
-    #     if path.stem[:4] == 'adar':
-    #         write_adar(filepath, dp_data, star_data)
+    with open(STARDP_FILENAME, 'r') as f:
+        stardp_data = json.load(f)
+    dp_data = {row['procedure']: row for row in stardp_data if row['type'] == 'DP'}
+    star_data = {row['procedure']: row for row in stardp_data if row['type'] == 'STAR'}
+    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+        path = Path(filepath)
+        if path.stem[:3] == 'adr':
+            write_adr(filepath, dp_data)
+        # if path.stem[:4] == 'adar':
+        #     write_adar(filepath, dp_data, star_data)
     # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
-    write_boundary_data()
+    # write_boundary_data()
+    # write_artcc_boundary_data('zlc')

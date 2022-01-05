@@ -18,9 +18,9 @@ def _get_flightplan(callsign):
         return 404, ''
 
 
-@flightplans_blueprint.route('amendments/all')
-def _get_all_amended_flightplans():
-    return jsonify(libs.lib.get_all_amended_flightplans())
+# @flightplans_blueprint.route('amendments/all')
+# def _get_all_amended_flightplans():
+#     return jsonify(libs.lib.get_all_amended_flightplans())
 
 
 @flightplans_blueprint.route('amendments/callsign/<callsign>', methods=['POST', 'GET'])

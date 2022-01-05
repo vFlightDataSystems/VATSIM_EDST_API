@@ -91,7 +91,7 @@ def expand_route(route: str) -> str:
     :return:
     """
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    route = route.split()
+    route = list(filter(None, route.split('.')))
     new_route = []
     prev_segment = None
     for i, segment in enumerate(route):
@@ -230,12 +230,12 @@ def get_all_flightplans() -> defaultdict:
     return flightplans
 
 
-@cache.cached(timeout=15, key_prefix='all_amended_flightplans')
-def get_all_amended_flightplans() -> defaultdict:
-    flightplans = get_all_flightplans()
-    for callsign, fp in flightplans.items():
-        flightplans[callsign] = amend_flightplan(fp)
-    return flightplans
+# @cache.cached(timeout=15, key_prefix='all_amended_flightplans')
+# def get_all_amended_flightplans() -> defaultdict:
+#     flightplans = get_all_flightplans()
+#     for callsign, fp in flightplans.items():
+#         flightplans[callsign] = amend_flightplan(fp)
+#     return flightplans
 
 
 def get_flightplan(callsign: str) -> Flightplan:

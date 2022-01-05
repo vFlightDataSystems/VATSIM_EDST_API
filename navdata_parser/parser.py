@@ -245,21 +245,24 @@ def write_stardp(rows):
 def parse_prefroutes(stardp_rows):
     procedures = {' '.join(p['name'].split()[:-1]): p for p in stardp_rows}
     prefroute_rows = []
+    prev_is_fix = True
     with open(PREFROUTES_FILENAME, 'r') as f:
         entry = {}
         row = {}
-        route = []
+        route = ''
         airways = []
         for line in f.readlines():
             dep = line[4:9].strip()
             dest = line[9:14].strip()
             route_type = line[14:17].strip()
             if line[0:4] == 'PFR1':
+                route = route + f'.{"." if prev_is_fix else ""}'
+                prev_is_fix = True
                 if entry:
-                    row['route'] = ' '.join(route).strip()
+                    row['route'] = route
                     row['airways'] = ' '.join(airways).strip()
                     prefroute_rows.append(row)
-                route = []
+                route = ''
                 airways = []
                 row = {
                     'dep': dep,
@@ -273,6 +276,7 @@ def parse_prefroutes(stardp_rows):
                 segment = line[22:70].strip()
                 seg_type = line[70:77].strip()
                 if seg_type in ['DP', 'STAR', 'AIRWAY']:
+                    prev_is_fix = False
                     segments = segment.split()
                     name = ' '.join(s for s in segments if s not in ['(RNAV)', '(CANADIAN)']).strip()
                     try:
@@ -283,7 +287,11 @@ def parse_prefroutes(stardp_rows):
                             row[seg_type.lower()] = segment
                     except KeyError:
                         pass
-                route.append(segment)
+                    segment = f'.{segment}'
+                else:
+                    segment = f'{"." if prev_is_fix else ""}.{segment}'
+                    prev_is_fix = True
+                route += segment
     return prefroute_rows
 
 

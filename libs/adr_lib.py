@@ -9,23 +9,25 @@ import mongo_client
 from resources.Flightplan import Flightplan
 
 
-def slice_adr(route: str, tfix: str) -> str:
+def slice_adr(adr, tfix: str) -> str:
     """
     adjust a given adr which expands to expanded_route and have it end at a given tfix
     :param route: adr
     :param tfix: transition fix
     :return: adr upto the transition fix
     """
+    route = adr['route']
     if tfix in route:
         return route[:route.index(tfix)]
 
-    expanded_route = libs.lib.expand_route(route)
-    split_route = route.split()
-
-    expanded_route = expanded_route[:expanded_route.index(tfix)]
-    # latest fix before tfix before airway starts
-    last_fix = [f for f in expanded_route.split() if f in split_route][-1]
-    return ' '.join(split_route[:split_route.index(last_fix) + 2])
+    route_fixes = adr['route_fixes']
+    tfix_index = route_fixes.index(tfix)
+    remaining_fixes = [fix for fix in route_fixes[tfix_index:] if fix in route]
+    if len(remaining_fixes) > 0:
+        next_fix = remaining_fixes[0]
+        return route[route.index(next_fix):]
+    else:
+        return route
 
 
 def amend_adr(route: str, adr: dict) -> dict:
@@ -35,61 +37,40 @@ def amend_adr(route: str, adr: dict) -> dict:
     :param adr: adr dictionary as it is returned from the database
     :return: dictionary containing: the adr upto tfix, rest of the route starting after the tfix, route groups for the adr
     """
-    split_route = route.split()
     adr_route = adr['route']
     # if adr matches initial route, there is nothing to do.
     if adr_route == route[:len(adr_route)]:
         adr_route = ''
     else:
-        expanded_adr = libs.lib.expand_route(adr_route).split()
-        expanded_route = libs.lib.expand_route(route).split()
-        tfix_list = adr['tfixes']
-        tfixes = [e['tfix'] for e in tfix_list]
-        info_dict = {e['tfix']: e['info'] for e in tfix_list}
-        for fix in reversed(expanded_route):
+        expanded_adr = adr['route_fixes']
+        tfixes = adr['transition_fixes']
+        tfix_info_dict = {e['tfix']: e['info'] for e in tfixes}
+        for tfix in reversed(tfixes):
             # find farthest tfix which triggered the ADR
-            if fix in tfixes:
-                info = info_dict[fix]
-                if fix in split_route and 'Explicit' in info:
-                    route_index = split_route.index(fix)
-                    adr_route = slice_adr(adr_route, fix)
-                    if adr_route != route[:len(adr_route)]:
-                        adr_route += ' ' + split_route[route_index]
-                        route = ' '.join(split_route[route_index + 1:])
-                    else:
-                        adr_route = ''
+            tfix_info = tfix_info_dict[tfix]
+            if tfix in route:
+                if 'Append' in tfix_info:
+                    route = route[route.index(tfix):]
                     break
-                elif 'Implicit' in info:
-                    try:
-                        index = expanded_route.index(fix)
-                        route_fix = [e for e in expanded_adr[index:] if e in route][-1]
-                        route_index = split_route.index(route_fix)
-                        adr_route = slice_adr(adr_route, fix)
-                        if adr_route != route[:len(adr_route)]:
-                            route = ' '.join(split_route[route_index:])
-                        else:
-                            adr_route = ''
-                        break
-                    except (IndexError, ValueError) as e:
-                        logging.Logger(str(e))
-                        pass
-                elif info == 'Append':
-                    index = expanded_route.index(fix)
-                    try:
-                        route_fix = [e for e in expanded_route[index:] if e in split_route][0]
-                    except IndexError:
-                        adr_route = ''
-                        break
-                    route_index = split_route.index(route_fix)
-                    if adr_route != route[:len(adr_route)]:
-                        adr_route += ' ' + split_route[route_index]
-                        route = ' '.join(split_route[route_index + 1:])
-                    else:
-                        adr_route = ''
+                elif 'Explicit' in tfix_info:
+                    adr_route = slice_adr(adr, tfix)
+                    route = route[route.index(tfix):]
                     break
+            if 'Implicit' in tfix_info:
+                try:
+                    implicit_trigger = tfix_info.split('-')[-1]
+                    index = route.index(implicit_trigger)
+                    if index:
+                        route_fix = [e for e in expanded_adr.split() if e in route][-1]
+                        adr_route = slice_adr(adr, tfix)
+                        route = route[route.index(route_fix):]
+                    break
+                except (IndexError, ValueError) as e:
+                    logging.Logger(str(e))
+                    pass
     return {
-        'adr_amendment': adr_route.strip(),
-        'route': route,
+        'adr_amendment': adr_route,
+        'route': libs.lib.format_route(route),
         'order': adr['order'],
         'route_groups': adr['route_groups']
     }
@@ -124,13 +105,13 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
         if departing_runways and dep_procedures and dp and not any(p == dp for p in dep_procedures):
             continue
         if (int(adr['min_alt']) <= alt <= int(adr['top_alt'])) or alt == 0:
-            for tfix in adr['tfixes']:
-                if (('Explicit' in tfix['info'] and
-                     tfix['tfix'] in split_route) or
-                        ('Implicit' in tfix['info'] and
-                         tfix['tfix'] in expanded_route) or
-                        (tfix['tfix'] in expanded_route and
-                         tfix['info'] == 'Append')):
+            for tfix_details in adr['transition_fixes_details']:
+                if (('Explicit' in tfix_details['info'] and
+                     tfix_details['tfix'] in split_route) or
+                        ('Implicit' in tfix_details['info'] and
+                         tfix_details['tfix'] in expanded_route) or
+                        (tfix_details['tfix'] in expanded_route and
+                         tfix_details['info'] == 'Append')):
                     eligible_adr.append(adr)
                     break
     return eligible_adr
