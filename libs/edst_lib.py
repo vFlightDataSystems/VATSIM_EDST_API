@@ -104,7 +104,7 @@ def update_edst_data():
         except IndexError:
             equipment = ''
         # airways = libs.lib.get_airways_on_route(fp.route)
-        expanded_route = libs.lib.expand_route(route)
+        expanded_route = libs.lib.expand_route(libs.lib.format_route(route))
         route_key = f'{dep}_{dest}'
         if route_key not in prefroutes.keys():
             local_dep = re.sub(r'^K?', '', dep)
@@ -147,7 +147,7 @@ def get_edst_entry(callsign: str) -> Optional[dict]:
 def update_edst_entry(callsign, data):
     client: MongoClient = g.mongo_edst_client
     if 'route' in data.keys() and 'route_data' not in data.keys():
-        expanded_route = libs.lib.expand_route(re.sub(r'\.+', ' ', data['route']).strip())
+        expanded_route = libs.lib.expand_route(libs.lib.format_route(data['route']))
         data['route_data'] = get_route_data(expanded_route.split())
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
     return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
