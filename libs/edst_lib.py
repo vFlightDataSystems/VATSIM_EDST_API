@@ -126,7 +126,7 @@ def update_edst_data():
             a['route_data'] = get_route_data(a['route_fixes'])
             a['route'] = libs.lib.format_route(a['route'])
         entry = {'callsign': callsign, 'type': fp.aircraft_short, 'equipment': equipment, 'beacon': beacon, 'dep': dep,
-                 'dep_info': dep_info, 'dest': dest, 'route': libs.lib.format_route(route),
+                 'dep_info': dep_info, 'dest': dest, 'dest_info': dest_info, 'route': libs.lib.format_route(route),
                  'route_data': get_route_data(expanded_route.split()), 'altitude': str(int(fp.altitude)).zfill(3),
                  'interim': None, 'hdg': None, 'spd': None, 'hold_fix': None, 'hold_hdg': None, 'hold_spd': None,
                  'remarks': fp.remarks, 'cid': cid, 'scratchpad': '', 'flightplan': vars(fp), 'adr': adr, 'adar': adar,
