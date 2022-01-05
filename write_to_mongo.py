@@ -81,6 +81,7 @@ def write_nattypes(filename, dbname):
     client: MongoClient = get_fd_mongo_client()
     db = client[dbname]
     col = db['nat_types']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
@@ -149,6 +150,7 @@ def write_adar(filename, dp_data, star_data):
     client: MongoClient = get_mongo_client(user, password, artcc)
     db = client[artcc]
     col = db[f'adar']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
@@ -177,7 +179,7 @@ def write_adr(filename, dp_data):
                 'top_alt': entry['Upper Altitude'],
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
-                'transition_fixes': entry['Transition Fixes'],
+                'transition_fixes': entry['Transition Fixes'].split(),
                 'transition_fixes_details': tfixes_details,
                 'route_fixes': entry['Route Fixes'].split(),
                 'dep_content_criteria': entry['Departure Content Criteria'].split('\n'),
@@ -211,6 +213,7 @@ def write_adr(filename, dp_data):
     client: MongoClient = get_mongo_client(user, password, artcc)
     db = client[artcc]
     col = db[f'adr']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
@@ -225,6 +228,7 @@ def write_faa_data(dbname):
         client: MongoClient = get_fd_mongo_client()
         db = client[dbname]
         col = db['faa_prd']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
@@ -234,6 +238,7 @@ def write_faa_data(dbname):
         client: MongoClient = get_fd_mongo_client()
         db = client[dbname]
         col = db['faa_cdr']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
@@ -247,6 +252,7 @@ def write_navdata(dbname):
         client: MongoClient = get_nav_mongo_client()
         db = client[dbname]
         col = db['procedures']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
@@ -256,6 +262,7 @@ def write_navdata(dbname):
         client: MongoClient = get_nav_mongo_client()
         db = client[dbname]
         col = db['waypoints']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
@@ -265,6 +272,7 @@ def write_navdata(dbname):
         client: MongoClient = get_nav_mongo_client()
         db = client[dbname]
         col = db['airways']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
@@ -288,6 +296,7 @@ def write_navdata(dbname):
     client: MongoClient = get_nav_mongo_client()
     db = client[dbname]
     col = db['airports']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
@@ -298,6 +307,7 @@ def write_navdata(dbname):
         client: MongoClient = get_nav_mongo_client()
         db = client[dbname]
         col = db['navaids']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
@@ -308,6 +318,7 @@ def write_navdata(dbname):
         client: MongoClient = get_nav_mongo_client()
         db = client[dbname]
         col = db['fixes']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
