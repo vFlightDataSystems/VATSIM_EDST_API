@@ -55,7 +55,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                 elif 'Explicit' in tfix_info:
                     dot_counter = int(tfix_info.split('-')[-1])
                     adr_route = ('.' + re.split(r'\.', adr_route[::-1], adr_route.count('.') - dot_counter)[-1])[::-1]
-                    route = route[route.index(tfix):]
+                    route = route[route.index(tfix)+len(tfix):].lstrip('.')
                     break
             if 'Implicit' in tfix_info:
                 try:
