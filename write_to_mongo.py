@@ -21,6 +21,7 @@ FIXES_FILENAME = 'navdata_parser/out/fixdata.csv'
 FAA_PRD_FILENAME = 'navdata_parser/out/faa_prd.csv'
 FAA_CDR_FILENAME = 'navdata_parser/out/cdr.csv'
 CIFP_DATA_FILENAME = 'navdata_parser/out/cifp_data.json'
+AAR_FILENAME = 'adrdata/2112_AAR.csv'
 
 fd_db_name = 'flightdata'
 nav_db_name = 'navdata'
@@ -105,8 +106,8 @@ def write_adar(filename, dp_data, star_data):
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
                 'route_fixes': entry['Route Fixes'],
-                'dep_content_criteria': entry['Departure Content Criteria'].split('\n'),
-                'dest_content_criteria': entry['Destination Content Criteria'].split('\n'),
+                'dep_content_criteria': entry['Departure Content Criteria'].split('\r\n'),
+                'dest_content_criteria': entry['Destination Content Criteria'].split('\r\n'),
                 'order': entry['Order'],
                 'route_groups': entry['Route Groups'].split(),
                 'artcc': artcc
@@ -182,7 +183,7 @@ def write_adr(filename, dp_data):
                 'transition_fixes': entry['Transition Fixes'].split(),
                 'transition_fixes_details': tfixes_details,
                 'route_fixes': entry['Route Fixes'].split(),
-                'dep_content_criteria': entry['Departure Content Criteria'].split('\n'),
+                'dep_content_criteria': entry['Departure Content Criteria'].split('\r\n'),
                 'order': entry['Order'],
                 'xlines': entry['XLines']
             }
@@ -213,6 +214,56 @@ def write_adr(filename, dp_data):
     client: MongoClient = get_mongo_client(user, password, artcc)
     db = client[artcc]
     col = db[f'adr']
+    col.drop()
+    col.insert_many(rows)
+    client.close()
+
+
+def write_aar(filename):
+    rows = []
+    with open(filename, 'r', newline='') as f:
+        reader = csv.DictReader(f)
+        for entry in reader:
+            tfixes_details = []
+            for tfix in entry['Transition Fixes Detail'].split():
+                info = re.search(r'\((.*)\)', tfix).group(0)
+                tfixes_details.append({
+                    'tfix': tfix.replace(info, ''),
+                    'info': info[1:-1]
+                })
+            alphas = entry['Auto Route Alphas'].split('\n')
+            row = {
+                'owning_facility': entry['Owning Facility'],
+                'applicable_artcc': entry['Applicable ARTCCs'].split(),
+                'airports': entry['Airports'].split(),
+                'route': '',
+                'star': '',
+                'airways': [],
+                'route_groups': entry['Route Groups'].split(),
+                'min_alt': entry['Lower Altitude'],
+                'top_alt': entry['Upper Altitude'],
+                'ierr': entry['IERR Criteria'].split(),
+                'aircraft_class': entry['AC Class Criteria'].split(),
+                'transition_fixes': entry['Transition Fixes'].split(),
+                'transition_fixes_details': tfixes_details,
+                'route_fixes': entry['Route Fixes'].split(),
+                'dest_content_criteria': entry['Destination Content Criteria'].split('\r\n'),
+                'order': entry['Order'],
+                'xlines': entry['XLines']
+            }
+            for a in alphas:
+                if a[:13] == '(RouteString)':
+                    row['route'] = a[13:].strip()
+                if a[:9] == '(Airways)':
+                    row['airways'] = a[9:].strip().split()
+                if a[:6] == '(StarId)':
+                    row['star'] = a[6:].strip()
+            if row['route']:
+                rows.append(row)
+
+    client: MongoClient = get_fd_mongo_client()
+    db = client.flightdata
+    col = db[f'aar']
     col.drop()
     col.insert_many(rows)
     client.close()
@@ -365,10 +416,12 @@ if __name__ == '__main__':
         path = Path(filepath)
         if path.stem[:3] == 'adr':
             write_adr(filepath, dp_data)
-        # if path.stem[:4] == 'adar':
-        #     write_adar(filepath, dp_data, star_data)
+        if path.stem[:4] == 'adar':
+            write_adar(filepath, dp_data, star_data)
+    write_aar(AAR_FILENAME)
     # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
     # write_boundary_data()
     # write_artcc_boundary_data('zlc')
+    pass
