@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 
 import mongo_client
 import libs.lib
+import libs.aar_lib
 import libs.adr_lib
 import libs.adar_lib
 from resources.Flightplan import Flightplan
@@ -199,3 +200,12 @@ def get_beacon(artcc, codes_in_use):
                 code = f'{random.choice(beacon_range):o}'.zfill(4)
                 break
     return code
+
+
+def get_aar(artcc, cid):
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    edst_entry = client.edst.data.find_one({'cid': cid}, {'_id': False})
+    aar_list = libs.aar_lib.get_eligible_aar(edst_entry, artcc)
+    for aar in aar_list:
+        aar['amendment'] = libs.aar_lib.amend_aar(edst_entry['route'], aar)
+    return aar_list

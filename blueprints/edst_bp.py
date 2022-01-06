@@ -67,3 +67,9 @@ def _get_beacon(artcc):
     codes_in_use = [d['beacon'] for d in data.values()]
     code = libs.edst_lib.get_beacon(artcc, codes_in_use)
     return jsonify({'beacon': code})
+
+
+@edst_blueprint.route('/aar/<artcc>/<cid>')
+def _get_aar(artcc, cid):
+    aar_data = libs.edst_lib.get_aar(artcc,cid)
+    return jsonify(aar_data)

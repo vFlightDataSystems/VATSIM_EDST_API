@@ -77,6 +77,7 @@ def format_route(route: str):
         else:
             new_route += f'.{s}'
         prev_is_fix = is_fix
+    new_route += f'{"." if prev_is_fix else ""}.'
     return new_route
 
 
