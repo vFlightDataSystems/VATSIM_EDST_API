@@ -54,19 +54,19 @@ def amend_adr(route: str, adr: dict) -> dict:
                     break
                 elif 'Explicit' in tfix_info:
                     dot_counter = int(tfix_info.split('-')[-1])
-                    adr_route = ('.' + re.split(r'\.', adr_route[::-1], dot_counter)[-1])[::-1]
+                    adr_route = ('.' + re.split(r'\.', adr_route[::-1], adr_route.count('.') - dot_counter)[-1])[::-1]
                     route = route[route.index(tfix):]
                     break
             if 'Implicit' in tfix_info:
                 try:
                     dot_counter, implicit_trigger = tfix_info.split('-')[0:]
-                    adr_route = ('.' + re.split(r'\.', adr_route[::-1], dot_counter)[-1])[::-1]
+                    adr_route = ('.' + re.split(r'\.', adr_route[::-1], adr_route.count('.') - dot_counter)[-1])[::-1]
                     index = route.index(implicit_trigger)
                     if index:
                         route = route[index:]
                     else:
                         route_fix = [e for e in expanded_adr if e in route][0]
-                        route = route[route.index(route_fix)+len(tfix):]
+                        route = route[route.index(route_fix) + len(tfix):]
                     break
                 except (IndexError, ValueError) as e:
                     logging.Logger(str(e))
@@ -99,7 +99,7 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
         if departing_runways is None or any(
             [re.match(rf'RW{rw}|ALL', r['transition']) for r in p['routes'] for rw in departing_runways])
     ]
-    alt = int(fp.altitude)*100
+    alt = int(fp.altitude) * 100
     split_route = fp.route.split()
     expanded_route = libs.lib.expand_route(libs.lib.format_route(fp.route)).split()
     for adr in adr_list:
