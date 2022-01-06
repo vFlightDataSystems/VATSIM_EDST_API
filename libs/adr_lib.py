@@ -9,26 +9,6 @@ import mongo_client
 from resources.Flightplan import Flightplan
 
 
-def slice_adr(adr, tfix: str) -> str:
-    """
-    :param adr: adr
-    :param tfix: transition fix
-    :return: adr upto the transition fix
-    """
-    route = adr['route']
-    if tfix in route:
-        return route[:route.index(tfix)]
-
-    route_fixes = adr['route_fixes']
-    tfix_index = route_fixes.index(tfix)
-    remaining_fixes = [fix for fix in route_fixes[tfix_index:] if fix in route]
-    if len(remaining_fixes) > 0:
-        next_fix = remaining_fixes[0]
-        return route[route.index(next_fix):]
-    else:
-        return route
-
-
 def amend_adr(route: str, adr: dict) -> dict:
     """
 
@@ -54,13 +34,15 @@ def amend_adr(route: str, adr: dict) -> dict:
                     break
                 elif 'Explicit' in tfix_info:
                     dot_counter = int(tfix_info.split('-')[-1])
-                    adr_route = ('.' + re.split(r'\.', adr_route[::-1], adr_route.count('.') - dot_counter)[-1])[::-1]
-                    route = route[route.index(tfix)+len(tfix):].lstrip('.')
+                    adr_route = ('.' + re.split(r'\.', adr_route[::-1], adr_route.count('.') - dot_counter)[-1])[::-1] \
+                        .rstrip('.')
+                    route = route[route.index(tfix) + len(tfix):]
                     break
             if 'Implicit' in tfix_info:
                 try:
                     dot_counter, implicit_trigger = tfix_info.split('-')[0:]
-                    adr_route = ('.' + re.split(r'\.', adr_route[::-1], adr_route.count('.') - dot_counter)[-1])[::-1]
+                    adr_route = ('.' + re.split(r'\.', adr_route[::-1],
+                                                adr_route.count('.') - int(dot_counter))[-1])[::-1]
                     index = route.index(implicit_trigger)
                     if index:
                         route = route[index:]
