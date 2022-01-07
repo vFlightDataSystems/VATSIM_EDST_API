@@ -39,7 +39,7 @@ def amend_aar(route: str, aar: dict) -> dict:
         if 'Implicit' in tfix_info:
             dot_counter, implicit_trigger = tfix_info.split('-')[1:]
             if implicit_trigger in route:
-                aar_route = re.split(r'\.', aar_route, int(dot_counter-1))[-1]
+                aar_route = re.split(r'\.', aar_route, int(dot_counter)-1)[-1]
                 index = route.index(implicit_trigger)
                 if index:
                     triggered_tfix = tfix
