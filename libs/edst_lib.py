@@ -148,7 +148,7 @@ def get_edst_entry(callsign: str) -> Optional[dict]:
 def update_edst_entry(callsign, data):
     client: MongoClient = g.mongo_edst_client
     if 'route' in data.keys() and 'route_data' not in data.keys():
-        expanded_route = data['route_fixes'] if 'route_fixes' in data.keys() \
+        expanded_route = set(data['route_fixes']) if 'route_fixes' in data.keys() \
             else libs.lib.expand_route(libs.lib.format_route(data['route']))
         data['route_data'] = get_route_data(expanded_route)
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
