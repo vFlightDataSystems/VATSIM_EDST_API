@@ -118,11 +118,11 @@ def update_edst_data():
             for r in pdr:
                 r['route_data'] = get_route_data(libs.lib.expand_route(r['route']))
             prefroutes[route_key] = cdr + pdr
-        adr = libs.adr_lib.get_eligible_adr(fp)
+        adr = libs.adr_lib.get_adr(fp)
         for a in adr:
             amendment = libs.adr_lib.amend_adr(route, a)
             a['amendment'] = amendment
-        adar = libs.adar_lib.get_eligible_adar(fp)
+        adar = libs.adar_lib.get_adar(fp)
         for a in adar:
             a['route_data'] = get_route_data(a['route_fixes'])
             a['route'] = libs.lib.format_route(a['route'])
@@ -203,10 +203,10 @@ def get_beacon(artcc, codes_in_use):
     return code
 
 
-def get_aar(artcc, cid):
+def get_edst_aar(artcc: str, cid: str) -> list:
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     edst_entry = client.edst.data.find_one({'cid': cid}, {'_id': False})
-    aar_list = libs.aar_lib.get_eligible_aar(edst_entry, artcc)
+    aar_list = libs.aar_lib.get_aar(edst_entry, artcc)
     for aar in aar_list:
         aar['amendment'] = libs.aar_lib.amend_aar(edst_entry['route'], aar)
     return aar_list

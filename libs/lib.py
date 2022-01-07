@@ -145,7 +145,7 @@ def get_faa_cdr(dep: str, dest: str) -> list:
     return list(client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
 
 
-def get_adar(dep: str, dest: str) -> list:
+def get_all_adar(dep: str, dest: str) -> list:
     dep_artcc = get_airport_info(dep)['artcc'].lower()
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     return list(
@@ -159,16 +159,17 @@ def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
         departing_runways = None
 
     if fp.departure and fp.route:
-
-        adar_list = sorted(libs.adar_lib.get_eligible_adar(fp, departing_runways=departing_runways),
+        adar_list = [adar for adar in libs.adar_lib.get_adar(fp, departing_runways=departing_runways) if
+                     adar['eligible']]
+        adar_list = sorted(adar_list,
                            key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
         if adar_list and (any(filter(lambda x: x['ierr'], adar_list)) or not ('/L' in fp.aircraft_faa)):
-            pprint.pprint(adar_list)
             if not any([a['route'] == fp.route for a in adar_list]):
                 fp.amendment = f'{adar_list[0]["route"]}'
                 fp.amended_route = f'+{adar_list[0]["route"]}+'
         else:
-            adr_list = libs.adr_lib.get_eligible_adr(fp, departing_runways=departing_runways)
+            adr_list = [adr for adr in libs.adr_lib.get_adr(fp, departing_runways=departing_runways) if
+                        adr['eligible']]
             adr_list = sorted(adr_list, key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
             adr_amendments = [libs.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
             if adr_amendments and not any([a['route'] == fp.route for a in adr_amendments]):
