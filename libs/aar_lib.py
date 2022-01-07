@@ -33,13 +33,13 @@ def amend_aar(route: str, aar: dict) -> dict:
             elif 'Explicit' in tfix_info:
                 triggered_tfix = tfix
                 dot_counter = int(tfix_info.split('-')[-1])
-                aar_route = '.' + re.split(r'\.', aar_route, dot_counter)[-1]
+                aar_route = '.' + re.split(r'\.', aar_route, dot_counter-1)[-1]
                 remaining_route = remaining_route[:route.index(tfix) + len(tfix)]
                 break
         if 'Implicit' in tfix_info:
             dot_counter, implicit_trigger = tfix_info.split('-')[1:]
             if implicit_trigger in route:
-                aar_route = re.split(r'\.', aar_route, int(dot_counter))[-1]
+                aar_route = re.split(r'\.', aar_route, int(dot_counter-1))[-1]
                 index = route.index(implicit_trigger)
                 if index:
                     triggered_tfix = tfix
