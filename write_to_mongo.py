@@ -65,6 +65,7 @@ def write_beacons(dbname):
         client: MongoClient = get_fd_mongo_client()
         db = client[dbname]
         col = db['beacons']
+        col.drop()
         col.insert_many(list(reader))
         client.close()
 
@@ -132,7 +133,7 @@ def write_adar(filename, dp_data, star_data):
                         row['route'] = row['route'].replace(star, current_star)
                 else:
                     pass
-                    # print(f'{star} not in nasr!')
+                    print(f'{star} not in nasr!')
             dp = row['dp']
             if dp:
                 dp_id = ''.join([s for s in dp if not s.isdigit()])
@@ -143,7 +144,7 @@ def write_adar(filename, dp_data, star_data):
                         row['route'] = row['route'].replace(dp, current_dp)
                 else:
                     pass
-                    # print(f'{dp} not in nasr!')
+                    print(f'{dp} not in nasr!')
             rows.append(row)
 
     user = f'{artcc}_admin'
@@ -410,8 +411,8 @@ if __name__ == '__main__':
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
     with open(STARDP_FILENAME, 'r') as f:
         stardp_data = json.load(f)
-    dp_data = {row['procedure']: row for row in stardp_data if row['type'] == 'DP'}
-    star_data = {row['procedure']: row for row in stardp_data if row['type'] == 'STAR'}
+    dp_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'DP'}
+    star_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'STAR'}
     for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
         path = Path(filepath)
         if path.stem[:3] == 'adr':
