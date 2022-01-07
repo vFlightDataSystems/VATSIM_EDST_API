@@ -18,7 +18,7 @@ def amend_aar(route: str, aar: dict) -> dict:
     """
     aar_route = aar['route']
     remaining_route = copy(route)
-    triggered_tfix = [fix for fix in aar['tfixes'] if fix in route][0]
+    triggered_tfix = [fix for fix in aar['transition_fixes'] if fix in route][0]
     if aar_route == route[len(aar_route):]:
         aar_route = ''
     else:
