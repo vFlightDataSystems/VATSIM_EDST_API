@@ -1,5 +1,6 @@
 import logging
 import re
+from copy import copy
 
 from flask import g
 from pymongo import MongoClient
@@ -16,6 +17,8 @@ def amend_aar(route: str, aar: dict) -> dict:
     :return:
     """
     aar_route = aar['route']
+    remaining_route = copy(route)
+    triggered_tfix = [fix for fix in aar['tfixes'] if fix in route][0]
     if aar_route == route[len(aar_route):]:
         aar_route = ''
     else:
@@ -27,13 +30,14 @@ def amend_aar(route: str, aar: dict) -> dict:
             tfix_info = tfix_info_dict[tfix]
             if tfix in route and not route[route.index(tfix)+len(tfix)].isdigit():
                 if 'Prepend' in tfix_info:
-                    route = route[:route.index(tfix)+len(tfix)]
-
+                    triggered_tfix = tfix
+                    remaining_route = remaining_route[:route.index(tfix)+len(tfix)]
                     break
                 elif 'Explicit' in tfix_info:
+                    triggered_tfix = tfix
                     dot_counter = int(tfix_info.split('-')[-1])
                     aar_route = '.' + re.split(r'\.', aar_route, dot_counter)[-1]
-                    route = route[:route.index(tfix)+len(tfix)]
+                    remaining_route = remaining_route[:route.index(tfix)+len(tfix)]
                     break
             if 'Implicit' in tfix_info:
                 dot_counter, implicit_trigger = tfix_info.split('-')[1:]
@@ -41,11 +45,17 @@ def amend_aar(route: str, aar: dict) -> dict:
                     aar_route = re.split(r'\.', aar_route, int(dot_counter))[-1]
                     index = route.index(implicit_trigger)
                     if index:
-                        route = route[:index+len(tfix)]
+                        triggered_tfix = tfix
+                        remaining_route = remaining_route[:index+len(tfix)]
+                        aar_route = aar_route
                         break
+    # add dots after tfix in the filed route
+    if match := re.search(r'\.+', route[len(remaining_route):]):
+        remaining_route += match.group()
     return {
         'aar_amendment': aar_route,
-        'route': route,
+        'tfix': triggered_tfix,
+        'route': remaining_route,
         'order': aar['order'],
         'route_groups': aar['route_groups']
     }
@@ -73,7 +83,7 @@ def get_eligible_aar(edst_entry, requesting_artcc) -> list:
                      tfix in route and
                      not route[route.index(tfix)+len(tfix)].isdigit()) or
                         ('Implicit' in tfix_info and
-                         tfix in expanded_route and tfix_info.split('-')[-1] in route) or
+                         tfix in expanded_route) or
                         (tfix in expanded_route and
                          tfix_info == 'Prepend')):
                     eligible_aar.append(aar)
