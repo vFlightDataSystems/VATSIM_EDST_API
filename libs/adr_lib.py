@@ -83,7 +83,7 @@ def get_eligible_adr(fp: Flightplan, departing_runways=None) -> list:
     ]
     alt = int(fp.altitude) * 100
     split_route = fp.route.split()
-    expanded_route = libs.lib.expand_route(libs.lib.format_route(fp.route)).split()
+    expanded_route = libs.lib.expand_route(libs.lib.format_route(fp.route))
     for adr in adr_list:
         dp = adr['dp']
         # check if adr is valid in current configuration

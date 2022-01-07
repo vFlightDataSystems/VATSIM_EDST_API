@@ -85,7 +85,7 @@ def get_airways_on_route(route: str):
     return list(filter(None, [get_airway(s) for s in route.split()]))
 
 
-def expand_route(route: str) -> str:
+def expand_route(route: str) -> list:
     """
 
     :param route:
@@ -123,7 +123,7 @@ def expand_route(route: str) -> str:
             new_route.append(segment)
         prev_segment = segment
 
-    return ' '.join(list(dict.fromkeys(new_route)))
+    return list(dict.fromkeys(new_route))
 
 
 def clean_route(route, dep='', dest=''):

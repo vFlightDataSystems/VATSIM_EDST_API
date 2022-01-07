@@ -113,10 +113,10 @@ def update_edst_data():
             cdr = list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
             pdr = list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
             for r in cdr:
-                r['route_data'] = get_route_data(libs.lib.expand_route(' '.join(r['route'].split('.'))).split())
+                r['route_data'] = get_route_data(libs.lib.expand_route(' '.join(r['route'].split('.'))))
                 r['route'] = libs.lib.format_route(re.sub(rf'{dep}|{dest}', '', r['route']))
             for r in pdr:
-                r['route_data'] = get_route_data(libs.lib.expand_route(r['route']).split())
+                r['route_data'] = get_route_data(libs.lib.expand_route(r['route']))
             prefroutes[route_key] = cdr + pdr
         adr = libs.adr_lib.get_eligible_adr(fp)
         for a in adr:
@@ -128,7 +128,7 @@ def update_edst_data():
             a['route'] = libs.lib.format_route(a['route'])
         entry = {'callsign': callsign, 'type': fp.aircraft_short, 'equipment': equipment, 'beacon': beacon, 'dep': dep,
                  'dep_info': dep_info, 'dest': dest, 'dest_info': dest_info, 'route': libs.lib.format_route(route),
-                 'route_data': get_route_data(expanded_route.split()), 'altitude': str(int(fp.altitude)).zfill(3),
+                 'route_data': get_route_data(expanded_route), 'altitude': str(int(fp.altitude)).zfill(3),
                  'interim': None, 'hdg': None, 'spd': None, 'hold_fix': None, 'hold_hdg': None, 'hold_spd': None,
                  'remarks': fp.remarks, 'cid': cid, 'scratchpad': '', 'flightplan': vars(fp), 'adr': adr, 'adar': adar,
                  'routes': prefroutes[route_key], 'update_time': datetime.utcnow().strftime(time_mask)}
@@ -148,8 +148,9 @@ def get_edst_entry(callsign: str) -> Optional[dict]:
 def update_edst_entry(callsign, data):
     client: MongoClient = g.mongo_edst_client
     if 'route' in data.keys() and 'route_data' not in data.keys():
-        expanded_route = libs.lib.expand_route(libs.lib.format_route(data['route']))
-        data['route_data'] = get_route_data(expanded_route.split())
+        expanded_route = data['route_fixes'] if 'route_fixes' in data.keys() \
+            else libs.lib.expand_route(libs.lib.format_route(data['route']))
+        data['route_data'] = get_route_data(expanded_route)
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
     return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
 
