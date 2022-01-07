@@ -18,37 +18,34 @@ def amend_aar(route: str, aar: dict) -> dict:
     """
     aar_route = aar['route']
     remaining_route = copy(route)
-    triggered_tfix = ''
-    if aar_route == route[len(aar_route):]:
-        aar_route = ''
-    else:
-        # expanded_aar = aar['route_fixes']
-        tfixes = aar['transition_fixes']
-        tfix_info_dict = {e['tfix']: e['info'] for e in aar['transition_fixes_details']}
-        for tfix in tfixes:
-            # find first tfix which triggered the AAR
-            tfix_info = tfix_info_dict[tfix]
-            if tfix in route and not route[route.index(tfix)+len(tfix)].isdigit():
-                if 'Prepend' in tfix_info:
+    triggered_tfix = None
+    # expanded_aar = aar['route_fixes']
+    tfixes = aar['transition_fixes']
+    tfix_info_dict = {e['tfix']: e['info'] for e in aar['transition_fixes_details']}
+    for tfix in tfixes:
+        # find first tfix which triggered the AAR
+        tfix_info = tfix_info_dict[tfix]
+        if tfix in route and not route[route.index(tfix)+len(tfix)].isdigit():
+            if 'Prepend' in tfix_info:
+                triggered_tfix = tfix
+                remaining_route = remaining_route[:route.index(tfix)+len(tfix)]
+                break
+            elif 'Explicit' in tfix_info:
+                triggered_tfix = tfix
+                dot_counter = int(tfix_info.split('-')[-1])
+                aar_route = '.' + re.split(r'\.', aar_route, dot_counter)[-1]
+                remaining_route = remaining_route[:route.index(tfix)+len(tfix)]
+                break
+        if 'Implicit' in tfix_info:
+            dot_counter, implicit_trigger = tfix_info.split('-')[1:]
+            if implicit_trigger in route:
+                aar_route = re.split(r'\.', aar_route, int(dot_counter))[-1]
+                index = route.index(implicit_trigger)
+                if index:
                     triggered_tfix = tfix
-                    remaining_route = remaining_route[:route.index(tfix)+len(tfix)]
+                    remaining_route = remaining_route[:index+len(tfix)]
+                    aar_route = aar_route
                     break
-                elif 'Explicit' in tfix_info:
-                    triggered_tfix = tfix
-                    dot_counter = int(tfix_info.split('-')[-1])
-                    aar_route = '.' + re.split(r'\.', aar_route, dot_counter)[-1]
-                    remaining_route = remaining_route[:route.index(tfix)+len(tfix)]
-                    break
-            if 'Implicit' in tfix_info:
-                dot_counter, implicit_trigger = tfix_info.split('-')[1:]
-                if implicit_trigger in route:
-                    aar_route = re.split(r'\.', aar_route, int(dot_counter))[-1]
-                    index = route.index(implicit_trigger)
-                    if index:
-                        triggered_tfix = tfix
-                        remaining_route = remaining_route[:index+len(tfix)]
-                        aar_route = aar_route
-                        break
     # add dots after tfix in the filed route
     if match := re.search(r'\.+', route[len(remaining_route):]):
         remaining_route += match.group()
