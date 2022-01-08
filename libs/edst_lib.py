@@ -164,7 +164,7 @@ def get_route_data(fixes: list) -> list:
     points = []
     for fix in fixes:
         if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
-            points.append({'fix': fix, 'pos': (float(fix_data['lon']), float(fix_data['lat']))})
+            points.append({'name': fix, 'pos': (float(fix_data['lon']), float(fix_data['lat']))})
     return points
 
 
