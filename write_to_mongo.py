@@ -95,6 +95,8 @@ def write_adar(filename, dp_data, star_data):
         reader = csv.DictReader(f)
         for entry in reader:
             alphas = entry['Auto Route Alphas'].split('\n')
+            dep_content_criteria = entry['Departure Content Criteria'].split('\r\n')
+            dest_content_criteria = entry['Destination Content Criteria'].split('\r\n')
             row = {
                 'dep': entry['Dep Airports'].split(),
                 'dest': entry['Arr Airports'].split(),
@@ -107,8 +109,8 @@ def write_adar(filename, dp_data, star_data):
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
                 'route_fixes': entry['Route Fixes'],
-                'dep_content_criteria': entry['Departure Content Criteria'].split('\r\n'),
-                'dest_content_criteria': entry['Destination Content Criteria'].split('\r\n'),
+                'dep_content_criteria': dep_content_criteria if any(dep_content_criteria) else None,
+                'dest_content_criteria': dest_content_criteria if any(dest_content_criteria) else None,
                 'order': entry['Order'],
                 'route_groups': entry['Route Groups'].split(),
                 'artcc': artcc
@@ -171,6 +173,7 @@ def write_adr(filename, dp_data):
                     'info': info[1:-1]
                 })
             alphas = entry['Auto Route Alphas'].split('\n')
+            dep_content_criteria = entry['Departure Content Criteria'].split('\r\n')
             row = {
                 'dep': entry['Airports'].split(),
                 'route': '',
@@ -184,7 +187,7 @@ def write_adr(filename, dp_data):
                 'transition_fixes': entry['Transition Fixes'].split(),
                 'transition_fixes_details': tfixes_details,
                 'route_fixes': entry['Route Fixes'].split(),
-                'dep_content_criteria': entry['Departure Content Criteria'].split('\r\n'),
+                'dep_content_criteria': dep_content_criteria if any(dep_content_criteria) else None,
                 'order': entry['Order'],
                 'xlines': entry['XLines']
             }
@@ -233,6 +236,7 @@ def write_aar(filename):
                     'info': info[1:-1]
                 })
             alphas = entry['Auto Route Alphas'].split('\n')
+            dest_content_criteria = entry['Destination Content Criteria'].split('\r\n')
             row = {
                 'owning_facility': entry['Owning Facility'],
                 'applicable_artcc': entry['Applicable ARTCCs'].split(),
@@ -248,7 +252,7 @@ def write_aar(filename):
                 'transition_fixes': entry['Transition Fixes'].split(),
                 'transition_fixes_details': tfixes_details,
                 'route_fixes': entry['Route Fixes'].split(),
-                'dest_content_criteria': entry['Destination Content Criteria'].split('\r\n'),
+                'dest_content_criteria': dest_content_criteria if any(dest_content_criteria) else None,
                 'order': entry['Order'],
                 'xlines': entry['XLines']
             }
