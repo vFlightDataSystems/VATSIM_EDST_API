@@ -41,8 +41,9 @@ def amend_adr(route: str, adr: dict) -> dict:
             if 'Implicit' in tfix_info:
                 try:
                     dot_counter, implicit_trigger = tfix_info.split('-')[0:]
-                    adr_route = ('.' + re.split(r'\.', adr_route[::-1],
-                                                adr_route.count('.') - int(dot_counter))[-1])[::-1]
+                    adr_route = f'{implicit_trigger}' \
+                                + ('.' + re.split(r'\.', adr_route[::-1],
+                                                  adr_route.count('.') - int(dot_counter))[-1])[::-1]
                     index = route.index(implicit_trigger)
                     if index:
                         route = route[index:]
