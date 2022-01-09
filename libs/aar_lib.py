@@ -32,7 +32,7 @@ def amend_aar(route: str, aar: dict) -> dict:
             elif 'Explicit' in tfix_info:
                 triggered_tfix = {'fix': tfix, 'info': tfix_info}
                 dot_counter = int(tfix_info.split('-')[-1])
-                aar_route = re.split(r'\.', aar_route, dot_counter-1)[-1]
+                aar_route = re.split(r'\.', aar_route, dot_counter - 1)[-1]
                 remaining_route = remaining_route[:route.index(tfix) + len(tfix)]
                 break
         if 'Implicit' in tfix_info:
@@ -76,9 +76,11 @@ def get_aar(edst_entry, requesting_artcc, route=None) -> list:
         for tfix_details in aar['transition_fixes_details']:
             tfix = tfix_details['tfix']
             tfix_info = tfix_details['info']
+            is_procedure = route[route.index(tfix)
+                                 + len(tfix)].isdigit() if len(route) > route.index(tfix) + len(tfix) else False
             if (('Explicit' in tfix_info and
                  tfix in route and
-                 not route[route.index(tfix) + len(tfix)].isdigit()) or
+                 not is_procedure) or
                     ('Implicit' in tfix_info and
                      tfix in expanded_route) or
                     (tfix in expanded_route and
