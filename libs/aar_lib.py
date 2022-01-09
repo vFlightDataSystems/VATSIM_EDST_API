@@ -58,7 +58,7 @@ def amend_aar(route: str, aar: dict) -> dict:
     }
 
 
-def get_aar(edst_entry, requesting_artcc) -> list:
+def get_aar(edst_entry, requesting_artcc, route=None) -> list:
     if edst_entry is None:
         return []
     aircraft = edst_entry['flightplan']['aircraft_short']
@@ -68,7 +68,8 @@ def get_aar(edst_entry, requesting_artcc) -> list:
         {"airports": edst_entry['dest'],
          "applicable_artcc": requesting_artcc.upper()}, {'_id': False})
     alt = int(edst_entry['altitude']) * 100
-    route = edst_entry['route']
+    if route is None:
+        route = edst_entry['route']
     expanded_route = libs.lib.expand_route(route)
     available_aar = []
     for aar in aar_list:

@@ -69,7 +69,11 @@ def _get_beacon(artcc):
     return jsonify({'beacon': code})
 
 
-@edst_blueprint.route('/aar/<artcc>/<cid>')
+@edst_blueprint.route('/aar/<artcc>/<cid>', methods=['GET', 'POST'])
 def _get_aar(artcc, cid):
-    aar_data = libs.edst_lib.get_edst_aar(artcc, cid)
+    post_data = request.get_json()
+    if post_data:
+        aar_data = libs.edst_lib.get_edst_aar(artcc, cid, route=post_data['route'])
+    else:
+        aar_data = libs.edst_lib.get_edst_aar(artcc, cid)
     return jsonify(aar_data)

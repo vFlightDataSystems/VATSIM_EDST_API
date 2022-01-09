@@ -14,6 +14,7 @@ APTDATA_FILENAME = NASR_DIR + '/APT.txt'
 PREFROUTES_FILENAME = NASR_DIR + '/PFR.txt'
 STARDP_FILENAME = NASR_DIR + '/STARDP.txt'
 AWY_FILENAME = NASR_DIR + '/AWY.txt'
+ATS_FILENAME = NASR_DIR + '/ATS.txt'
 CDR_FILENAME = NASR_DIR + '/CDR.txt'
 
 cifp_rwy_regex = re.compile(r'^SUSAP (\w{3,4})\s?K\d\wRW(\d{1,2}[LCR]?)')
@@ -326,7 +327,32 @@ def parse_awy():
                 }
             if line[:4] == 'AWY2':
                 entry['wpt'] = line[120:160].split('*')[1]
-                entry['type'] = line[45:64].strip().replace('REP-PT', 'FIX')
+                entry['type'] = re.sub(r'.*-PT', 'FIX', line[45:64].strip())
+        if rows[-1] != entry:
+            rows.append(entry)
+    return rows
+
+
+def parse_ats():
+    rows = []
+    with open(ATS_FILENAME, 'r') as f:
+        entry = {}
+        for line in f.readlines():
+            awy_name = line[6:18].strip()
+            if line[:4] == 'ATS1':
+                if entry:
+                    rows.append(entry)
+                entry = {
+                    'airway': awy_name,
+                    'wpt': '',
+                    'type': '',
+                    'sequence': line[21:25].strip(),
+                    'artcc': line[153:156].strip()
+                }
+            if line[:4] == 'ATS2':
+                entry['wpt'] = line[142:146].strip() or line[25:65].strip()
+                entry['type'] = re.sub(r'.*-PT', 'FIX', line[65:90].strip())
+
         if rows[-1] != entry:
             rows.append(entry)
     return rows
@@ -336,6 +362,13 @@ def write_awy(rows):
     with open('out/airways.csv', 'w', newline='', encoding='utf8') as f:
         writer = csv.DictWriter(f, fieldnames=['airway', 'wpt', 'type', 'sequence', 'mea', 'max_auth_alt', 'moa',
                                                'min_crossing_alt', 'artcc'])
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_ats(rows):
+    with open('out/ats.csv', 'w', newline='', encoding='utf8') as f:
+        writer = csv.DictWriter(f, fieldnames=['airway', 'wpt', 'type', 'sequence', 'artcc'])
         writer.writeheader()
         writer.writerows(rows)
 
@@ -367,6 +400,7 @@ if __name__ == '__main__':
     stardp_rows = parse_stardp()
     navaid_rows = parse_navaid_data()
     airway_rows = parse_awy()
+    ats_rows = parse_ats()
     fixdata_rows = parse_fixdata()
     aptdata_rows = parse_aptdata()
     cdr_rows = parse_cdr()
@@ -380,5 +414,6 @@ if __name__ == '__main__':
     write_stardp(stardp_rows)
     write_cdr(cdr_rows)
     write_awy(airway_rows)
+    write_ats(ats_rows)
     write_prefroutes(prefroute_rows)
     pass

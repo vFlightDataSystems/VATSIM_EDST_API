@@ -14,6 +14,7 @@ import mongo_users
 NATTYPE_FILENAME = 'adrdata/ACCriteriaTypes.csv'
 STARDP_FILENAME = 'navdata_parser/out/stardp.json'
 AIRWAYS_FILENAME = 'navdata_parser/out/airways.csv'
+ATS_FILENAME = 'navdata_parser/out/ats.csv'
 APT_FILENAME = 'navdata_parser/out/aptdata.csv'
 WAYPOINTS_FILENAME = 'navdata_parser/out/navdata_combined.csv'
 NAVAIDS_FILENAME = 'navdata_parser/out/navaid_data.csv'
@@ -332,6 +333,16 @@ def write_navdata(dbname):
         col.insert_many(rows)
         client.close()
 
+    with open(ATS_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['oceanic_airways']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
+
     rows = []
     with open(APT_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
@@ -411,19 +422,19 @@ def write_artcc_boundary_data(artcc):
 
 
 if __name__ == '__main__':
-    # write_navdata(nav_db_name)
+    write_navdata(nav_db_name)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
-    with open(STARDP_FILENAME, 'r') as f:
-        stardp_data = json.load(f)
-    dp_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'DP'}
-    star_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'STAR'}
-    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-        path = Path(filepath)
-        if path.stem[:3] == 'adr':
-            write_adr(filepath, dp_data)
-        if path.stem[:4] == 'adar':
-            write_adar(filepath, dp_data, star_data)
-    write_aar(AAR_FILENAME)
+    # with open(STARDP_FILENAME, 'r') as f:
+    #     stardp_data = json.load(f)
+    # dp_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'DP'}
+    # star_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'STAR'}
+    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+    #     path = Path(filepath)
+    #     if path.stem[:3] == 'adr':
+    #         write_adr(filepath, dp_data)
+    #     if path.stem[:4] == 'adar':
+    #         write_adar(filepath, dp_data, star_data)
+    # write_aar(AAR_FILENAME)
     # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()

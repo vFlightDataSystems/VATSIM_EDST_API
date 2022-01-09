@@ -45,7 +45,9 @@ def get_airway(airway: str) -> list:
     """
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     waypoints = list(sorted(client.navdata.airways.find(
-        {"airway": {"$in": [airway]}}, {'_id': False}), key=lambda x: int(x['sequence'])))
+        {"airway": {"$in": [airway]}}, {'_id': False}), key=lambda x: int(x['sequence']))) or \
+                list(sorted(client.navdata.oceanic_airways.find({"airway": {"$in": [airway]}}, {'_id': False}),
+                            key=lambda x: int(x['sequence'])))
     return waypoints
 
 

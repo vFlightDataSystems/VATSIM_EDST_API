@@ -203,10 +203,12 @@ def get_beacon(artcc, codes_in_use):
     return code
 
 
-def get_edst_aar(artcc: str, cid: str) -> list:
+def get_edst_aar(artcc: str, cid: str, route=None) -> list:
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     edst_entry = client.edst.data.find_one({'cid': cid}, {'_id': False})
-    aar_list = libs.aar_lib.get_aar(edst_entry, artcc)
+    if route is None:
+        route = edst_entry['route']
+    aar_list = libs.aar_lib.get_aar(edst_entry, artcc, route=route)
     for aar in aar_list:
-        aar['amendment'] = libs.aar_lib.amend_aar(edst_entry['route'], aar)
+        aar['amendment'] = libs.aar_lib.amend_aar(route, aar)
     return aar_list
