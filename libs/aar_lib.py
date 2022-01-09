@@ -76,8 +76,10 @@ def get_aar(edst_entry, requesting_artcc, route=None) -> list:
         for tfix_details in aar['transition_fixes_details']:
             tfix = tfix_details['tfix']
             tfix_info = tfix_details['info']
-            is_procedure = route[route.index(tfix)
-                                 + len(tfix)].isdigit() if len(route) > route.index(tfix) + len(tfix) else False
+            is_procedure = False
+            if tfix in route:
+                is_procedure = route[route.index(tfix) + len(tfix)].isdigit() \
+                    if len(route) > route.index(tfix) + len(tfix) else False
             if (('Explicit' in tfix_info and
                  tfix in route and
                  not is_procedure) or
