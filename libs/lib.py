@@ -116,9 +116,12 @@ def expand_route(route: str) -> list:
                 new_route.append(segment)
         elif segment[-1].isdigit() and \
                 (procedure := client.navdata.procedures.find_one({'procedure': segment.upper()}, {'_id': False})):
-            if transition := next(iter([r for r in procedure['routes'] if r['transition'] == prev_segment]), None):
-                for fix in transition['route']:
-                    new_route.append(fix)
+            if transitions := [r for r in procedure['routes'] if r['transition'] in [prev_segment, 'ALL']]:
+                if procedure['type'] == 'DP':
+                    transitions.reverse()
+                for transition in transitions:
+                    for fix in transition['route']:
+                        new_route.append(fix)
             else:
                 new_route.append(segment)
         else:
