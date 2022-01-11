@@ -172,7 +172,7 @@ def parse_stardp():
         prev_entry_id = None
         prev_transition = None
         transition = None
-        route = {}
+        route = []
         for line in cifp_f.readlines():
             if line[12] in ['D', 'E'] and line[:5] == 'SUSAP':
                 entry_id = line[6:19]
@@ -180,13 +180,12 @@ def parse_stardp():
                 transition = line[20:26].strip()
                 fix_name = line[29:34].strip()
                 if prev_transition != transition and entry:
-                    if transition != 'ALL' and transition:
-                        entry['transitions'].append(transition)
+                    if prev_transition != 'ALL':
+                        entry['transitions'].append(prev_transition)
+                    entry['routes'].append({'transition': prev_transition, 'route': route})
                     prev_transition = transition
-                    entry['routes'].append(route)
-                    route = {'transition': transition, 'route': []}
+                    route = []
                 if entry_id != prev_entry_id:
-                    prev_entry_id = entry_id
                     if entry:
                         rows.append(entry)
                     entry = {
@@ -196,8 +195,8 @@ def parse_stardp():
                         'transitions': [],
                         'routes': []
                     }
-                    route = {'transition': transition, 'route': []}
-                route['route'].append(fix_name)
+                route.append(fix_name)
+                prev_entry_id = entry_id
     return rows
 
 
