@@ -77,3 +77,10 @@ def _get_aar(artcc, cid):
     else:
         aar_data = libs.edst_lib.get_edst_aar(artcc, cid)
     return jsonify(aar_data)
+
+
+@edst_blueprint.route('/reference_fixes/<artcc>')
+def _get_reference_fix_list(artcc):
+    client: MongoClient = g.mongo_reader_client
+    data = list(client[artcc].reference_fixes.find({}))
+    return jsonify(data)
