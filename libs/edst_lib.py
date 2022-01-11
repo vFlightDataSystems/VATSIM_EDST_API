@@ -105,7 +105,7 @@ def update_edst_data():
         except IndexError:
             equipment = ''
         # airways = libs.lib.get_airways_on_route(fp.route)
-        expanded_route = libs.lib.expand_route(libs.lib.format_route(route))
+        expanded_route = libs.lib.expand_route(libs.lib.format_route(route), [dep, dest])
         route_key = f'{dep}_{dest}'
         if route_key not in prefroutes.keys():
             local_dep = re.sub(r'^K?', '', dep)
@@ -113,10 +113,10 @@ def update_edst_data():
             cdr = list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
             pdr = list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
             for r in cdr:
-                r['route_data'] = get_route_data(libs.lib.expand_route(' '.join(r['route'].split('.'))))
+                r['route_data'] = get_route_data(libs.lib.expand_route(' '.join(r['route'].split('.')), [dep, dest]))
                 r['route'] = libs.lib.format_route(re.sub(rf'{dep}|{dest}', '', r['route']))
             for r in pdr:
-                r['route_data'] = get_route_data(libs.lib.expand_route(r['route']))
+                r['route_data'] = get_route_data(libs.lib.expand_route(r['route'], [dep, dest]))
             prefroutes[route_key] = cdr + pdr
         adr = libs.adr_lib.get_adr(fp)
         for a in adr:

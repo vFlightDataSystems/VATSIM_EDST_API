@@ -87,12 +87,15 @@ def get_airways_on_route(route: str):
     return list(filter(None, [get_airway(s) for s in route.split()]))
 
 
-def expand_route(route: str) -> list:
+def expand_route(route: str, airports=None) -> list:
     """
 
+    :param airports:
     :param route:
     :return:
     """
+    if airports is None:
+        airports = []
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     route = list(filter(None, route.split('.')))
     new_route = []
@@ -115,7 +118,7 @@ def expand_route(route: str) -> list:
             else:
                 new_route.append(segment)
         elif segment[-1].isdigit() and \
-                (procedure := client.navdata.procedures.find_one({'procedure': segment.upper()}, {'_id': False})):
+                (procedure := client.navdata.procedures.find_one({'procedure': segment.upper(), 'airport': {'$in': airports}}, {'_id': False})):
             if transitions := [r for r in procedure['routes'] if r['transition'] in [prev_segment, 'ALL']]:
                 transitions.reverse()
                 for transition in transitions:

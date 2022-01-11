@@ -70,7 +70,7 @@ def get_aar(edst_entry, requesting_artcc, route=None) -> list:
     alt = int(edst_entry['altitude']) * 100
     if route is None:
         route = edst_entry['route']
-    expanded_route = libs.lib.expand_route(route)
+    expanded_route = libs.lib.expand_route(route, [edst_entry['dest']])
     available_aar = []
     for aar in aar_list:
         for tfix_details in aar['transition_fixes_details']:

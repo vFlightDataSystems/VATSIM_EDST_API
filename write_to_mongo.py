@@ -407,10 +407,15 @@ def write_boundary_data():
         boundary_data = [e for e in json.load(f)['features'] if re.match(r'K\S{3}', e['properties']['id'])]
         for e in boundary_data:
             artcc = e['properties']['id'][1:].lower()
+            if e['geometry']['type'] == 'MultiPolygon' and len(e['geometry']['coordinates']) == 1:
+                e['geometry']['type'] = 'Polygon'
+                e['geometry']['coordinates'] = e['geometry']['coordinates'][0]
             del e['properties']['label_lat']
             del e['properties']['label_lon']
             del e['type']
-            client[artcc]['boundary_data'].insert_one(e)
+            col = client[artcc]['boundary_data']
+            col.drop()
+            col.insert_one(e)
     client.close()
 
 

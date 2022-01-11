@@ -166,75 +166,38 @@ def write_aptdata(rows):
 
 def parse_stardp():
     rows = []
-    with open(STARDP_FILENAME, 'r') as stardp_f, \
-            open(CIFP_FILENAME, 'r') as cifp_f:
-        cifp_lines = defaultdict(list)
+    with open(CIFP_FILENAME, 'r') as cifp_f:
+        entry = None
+        entry_id = ''
+        prev_entry_id = None
+        prev_transition = None
+        transition = None
+        route = {}
         for line in cifp_f.readlines():
-            cifp_lines[line[13:19].strip()].append(line)
-        entry = {}
-        route = []
-        procedure = ''
-        transition = ''
-        transition_name = ''
-        pid = None
-        airport = ''
-        for line in stardp_f.readlines():
-            npid = line[:5]
-            fix_type = line[10:12].strip()
-            e = line[38:51].strip().split('.')
-            fix = line[30:35].strip()
-            if len(e) > 1 and route:
-                t_lines = [l for l in cifp_lines[procedure] if (
-                        (fix_type == 'AA' and fix in line[6:10]) or True)]
-                airports = list(set(l[6:10] for l in t_lines if l[20:25] == transition))
-                entry['routes'].append(
-                    {'transition': transition, 'name': transition_name, 'route': route, 'airports': airports})
-                route = [fix]
-            elif fix_type == 'AA' and route:
-                _transitions = []
-                t_lines = [l for l in cifp_lines[procedure] if (
-                        (fix_type == 'AA' and fix in line[6:10]) or True)]
-                rw_lines = [l for l in t_lines if
-                            ((l[29:34].strip() == route[0] and npid[0] == 'D')
-                             or (l[29:34].strip() == route[-1] and npid[0] == 'S'))
-                            and re.match(r'RW\d+[CLRB]?|ALL', l[20:25])]
-                for rw_line in rw_lines:
-                    airport = rw_line[6:10].strip()
-                    if match := re.search(r'RW\d+[CLRB]?|ALL', rw_line[20:25]):
-                        t = match.group(0).strip()
-                        if re.match(r'RW\d+B', t):
-                            _transitions += [(airport, t.replace('B', c)) for c in 'LR']
-                        else:
-                            _transitions.append((airport, t))
-                if not _transitions:
-                    airports = list(set(l[6:10] for l in t_lines if l[20:25] == transition))
-                    entry['routes'].append(
-                        {'transition': transition, 'name': transition_name, 'route': route, 'airports': airports})
-                else:
-                    entry['routes'] += [{'transition': t[1], 'name': transition_name, 'route': route,
-                                         'airports': t[0]} for t in _transitions]
-                route = []
-            else:
-                route.append(fix)
-
-            if npid != pid:
-                procedure = e[0].strip() if npid[0] == 'D' else e[1].strip()
-                procedure_name = line[51:161].strip()
-                if entry:
-                    rows.append(entry)
-                entry = {'type': 'DP' if npid[0] == 'D' else 'STAR',
-                         'routes': [],
-                         'transitions': [],
-                         'procedure': procedure,
-                         'name': procedure_name
-                         }
-            if len(e) > 1:
-                transition = e[1].strip() if npid[0] == 'D' else e[0].strip()
-                if transition not in entry['transitions']:
-                    entry['transitions'].append(transition)
-                transition_name = line[51:161].strip()
-            pid = npid
-
+            if line[12] in ['D', 'E'] and line[:5] == 'SUSAP':
+                entry_id = line[6:19]
+                # seq_num = line[26:29].strip()
+                transition = line[20:26].strip()
+                fix_name = line[29:34].strip()
+                if prev_transition != transition and entry:
+                    if transition != 'ALL' and transition:
+                        entry['transitions'].append(transition)
+                    prev_transition = transition
+                    entry['routes'].append(route)
+                    route = {'transition': transition, 'route': []}
+                if entry_id != prev_entry_id:
+                    prev_entry_id = entry_id
+                    if entry:
+                        rows.append(entry)
+                    entry = {
+                        'type': 'DP' if line[12] == 'D' else 'STAR',
+                        'airport': line[6:10].strip(),
+                        'procedure': line[13:19].strip(),
+                        'transitions': [],
+                        'routes': []
+                    }
+                    route = {'transition': transition, 'route': []}
+                route['route'].append(fix_name)
     return rows
 
 
@@ -244,7 +207,7 @@ def write_stardp(rows):
 
 
 def parse_prefroutes(stardp_rows):
-    procedures = {' '.join(p['name'].split()[:-1]): p for p in stardp_rows}
+    procedures = {' '.join(p['procedure'].split()[:-1]): p for p in stardp_rows}
     prefroute_rows = []
     prev_is_fix = True
     with open(PREFROUTES_FILENAME, 'r') as f:
