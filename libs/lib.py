@@ -137,7 +137,7 @@ def expand_route(route: str, airports=None) -> list:
 def clean_route(route, dep='', dest=''):
     if route:
         route = clean_route_pattern.sub(' ', route)
-        route = re.sub(fr'{dep}|{dest}', "", route)
+        route = re.sub(fr'^{dep}\S*|{dest}\S*$', "", route).strip()
     return route.strip()
 
 
