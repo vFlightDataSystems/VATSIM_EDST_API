@@ -120,7 +120,7 @@ def expand_route(route: str, airports=None) -> list:
         elif segment[-1].isdigit() and \
                 (procedure := client.navdata.procedures.find_one({'procedure': segment.upper(), 'airport': {'$in': airports}}, {'_id': False})):
             if transitions := [r for r in procedure['routes'] if r['transition'] in [prev_segment, 'ALL']]:
-                transitions.reverse()
+                # transitions.reverse()
                 for transition in transitions:
                     new_route += transition['route']
             else:
