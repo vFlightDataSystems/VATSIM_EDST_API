@@ -84,13 +84,13 @@ def update_edst_data():
             if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(minutes=30) \
                     and entry['dep'] == dep and entry['dest'] == dest:
                 # if no manual amendments have been made in the last minute, update the flightplan
-                if 'manual_update_time' in entry.keys():
-                    if datetime.strptime(entry['manual_update_time'], time_mask) < datetime.utcnow() + timedelta(minutes=1):
-                        if fp.route != entry['flightplan']['route']:
-                            expanded_route = libs.lib.expand_route(libs.lib.format_route(fp.route), [dep, dest])
-                            entry['route'] = libs.lib.format_route(fp.route)
-                            entry['route_data'] = get_route_data(expanded_route)
-                        entry['altitude'] = str(int(fp.altitude)).zfill(3)
+                if 'manual_update_time' not in entry.keys() \
+                        or datetime.strptime(entry['manual_update_time'], time_mask) < datetime.utcnow() + timedelta(minutes=1):
+                    if fp.route != entry['flightplan']['route']:
+                        expanded_route = libs.lib.expand_route(libs.lib.format_route(fp.route), [dep, dest])
+                        entry['route'] = libs.lib.format_route(fp.route)
+                        entry['route_data'] = get_route_data(expanded_route)
+                    entry['altitude'] = str(int(fp.altitude)).zfill(3)
                 entry['flightplan'] = vars(fp)
                 entry['update_time'] = datetime.utcnow().strftime(time_mask)
                 client.edst.data.update_one({'callsign': callsign}, {'$set': entry})
