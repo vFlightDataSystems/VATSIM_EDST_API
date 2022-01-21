@@ -1,5 +1,4 @@
 import json.decoder
-import pprint
 import random
 import re
 from collections import defaultdict
@@ -64,7 +63,7 @@ def get_airport_info(airport: str) -> dict:
 
 def format_route(route: str):
     client = g.mongo_reader_client if g else mongo_client.reader_client
-    route = route.split()
+    route = re.sub(r'\.+', ' ', route).strip().split()
     new_route = ''
     prev_is_fix = True
     for s in route:
