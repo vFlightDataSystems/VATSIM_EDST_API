@@ -99,6 +99,10 @@ def update_edst_data():
         dest_info = reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False})
         if not (dep_info or dest_info):
             continue
+        if dep_info:
+            del dep_info['procedures']
+        if dest_info:
+            del dest_info['procedures']
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
         beacon = assign_beacon(fp, codes_in_use) or '0000'
