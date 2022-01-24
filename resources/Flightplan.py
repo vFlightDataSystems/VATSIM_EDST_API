@@ -10,7 +10,7 @@ class Flightplan:
         self.aircraft = fp['aircraft']
         self.aircraft_faa = fp['aircraft_faa']
         self.aircraft_short = fp['aircraft_short']
-        self.deptime = fp['deptime']
+        self.deptime = fp['deptime'] if 'deptime' in fp.keys() else ''
         self.remarks = fp['remarks']
         self.route = fp['route']
         self.altitude = fp['altitude']
