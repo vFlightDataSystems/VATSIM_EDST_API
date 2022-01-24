@@ -34,16 +34,16 @@ def get_vatsim_atis(airport: str) -> Optional[list]:
         if 'atis' in connections.keys():
             if atis_connection := next(
                     filter(lambda x: x['callsign'] == f'{airport.upper()}_ATIS', connections['atis']), None):
-                atis_str = ' '.join(atis_connection['text_atis'])
-                return [{
-                    'atis_string': atis_str,
-                    'letter': atis_connection['atis_code'],
-                    'time': re.search(r'\d{4}Z', atis_str)[0],
-                    'type': 'vatsim_atis',
-                    'airport': airport
-                }]
-    else:
-        return None
+                if atis_connection['text_atis']:
+                    atis_str = ' '.join(atis_connection['text_atis'])
+                    return [{
+                        'atis_string': atis_str,
+                        'letter': atis_connection['atis_code'],
+                        'time': re.search(r'\d{4}Z', atis_str)[0],
+                        'type': 'vatsim_atis',
+                        'airport': airport
+                    }]
+    return None
 
 
 @weather_blueprint.route('/metar/airport/<airport>')
