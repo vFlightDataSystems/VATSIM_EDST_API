@@ -24,7 +24,7 @@ def amend_aar(route: str, aar: dict) -> dict:
     for tfix in tfixes:
         # find first tfix which triggered the AAR
         tfix_info = tfix_info_dict[tfix]
-        if tfix in route and not route[route.index(tfix) + len(tfix)].isdigit():
+        if tfix in route and not (route + ' ')[route.index(tfix) + len(tfix)].isdigit():
             if 'Prepend' in tfix_info:
                 triggered_tfix = {'fix': tfix, 'info': tfix_info}
                 remaining_route = remaining_route[:route.index(tfix) + len(tfix)]
