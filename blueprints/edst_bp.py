@@ -5,9 +5,10 @@ import libs.lib
 import libs.edst_lib
 import mongo_client
 
+# TODO: write this list to database
 EDST_KEYS = ['aircraft', 'type', 'equipment', 'route', 'route_data', 'altitude', 'interim', 'hdg', 'spd',
              'previous_route', 'previous_route_data',
-             'hold_data', 'scratchpad', 'beacon', 'cleared_direct']
+             'hold_data', 'scratchpad', 'free_text', 'beacon', 'cleared_direct']
 
 edst_blueprint = Blueprint('edst', __name__)
 
@@ -23,15 +24,9 @@ def _close_mongo_clients(response):
     return response
 
 
-def get_edst_entry(callsign):
-    fp = libs.lib.get_flightplan(callsign)
-    edst_data = libs.edst_lib.get_edst_entry(callsign)
-    return {'fp': vars(fp), 'edst': edst_data}
-
-
 @edst_blueprint.route('/entry/<callsign>')
 def _get_entry(callsign):
-    return jsonify(get_edst_entry(callsign))
+    return jsonify(libs.edst_lib.get_edst_entry(callsign))
 
 
 @edst_blueprint.route('/entry/update', methods=['POST'])

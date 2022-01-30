@@ -69,85 +69,92 @@ def get_boundary_data(artcc):
 def update_edst_data():
     client: MongoClient = mongo_client.get_edst_client()
     reader_client: MongoClient = mongo_client.reader_client
-    data = {d['callsign']: d for d in client.edst.data.find({}, {'_id': False})}
-    used_cid_list = [d['cid'] for d in data.values()]
-    codes_in_use = [d['beacon'] for d in data.values()]
+    edst_entries = {d['callsign']: d for d in client.edst.data.find({}, {'_id': False})}
+    used_cid_list = [d['cid'] for d in edst_entries.values()]
+    codes_in_use = [d['beacon'] for d in edst_entries.values()]
     prefroutes = defaultdict(None)
-    for callsign, fp in libs.lib.get_all_flightplans().items():
-        if not ((20 < float(fp.lat) < 55) and (-135 < float(fp.lon) < -40)):
+    for vatsim_callsign, vatsim_fp in libs.lib.get_all_flightplans().items():
+        if not ((20 < float(vatsim_fp.lat) < 55) and (-135 < float(vatsim_fp.lon) < -40)):
             continue
-        dep = fp.departure
-        dest = fp.arrival
-        if callsign in data.keys():
-            entry = data[callsign]
-            update_time = entry['update_time']
-            if datetime.strptime(update_time, time_mask) < datetime.utcnow() + timedelta(minutes=30) \
-                    and entry['dep'] == dep and entry['dest'] == dest:
+        dep = vatsim_fp.departure
+        dest = vatsim_fp.arrival
+        if vatsim_callsign in edst_entries.keys():
+            new_edst_entry = edst_entries[vatsim_callsign]
+            update_time = new_edst_entry['update_time']
+            if datetime.strptime(update_time, time_mask) > datetime.utcnow() - timedelta(minutes=30) \
+                    and new_edst_entry['dep'] == dep and new_edst_entry['dest'] == dest:
                 # if no manual amendments have been made in the last minute, update the flightplan
-                if 'manual_update_time' not in entry.keys() \
-                        or datetime.strptime(entry['manual_update_time'], time_mask) < datetime.utcnow() + timedelta(minutes=1):
-                    if fp.route != entry['flightplan']['route']:
-                        expanded_route = libs.lib.expand_route(libs.lib.format_route(fp.route), [dep, dest])
-                        entry['route'] = libs.lib.format_route(fp.route)
-                        entry['route_data'] = get_route_data(expanded_route)
-                    entry['altitude'] = str(int(fp.altitude)).zfill(3)
-                entry['flightplan'] = vars(fp)
-                entry['update_time'] = datetime.utcnow().strftime(time_mask)
-                client.edst.data.update_one({'callsign': callsign}, {'$set': entry})
+                if 'manual_update_time' not in new_edst_entry.keys() \
+                        or datetime.strptime(new_edst_entry['manual_update_time'],
+                                             time_mask) > datetime.utcnow() - timedelta(minutes=1):
+                    if vatsim_fp.route != new_edst_entry['flightplan']['route']:
+                        new_edst_entry['route'] = libs.lib.format_route(vatsim_fp.route)
+                        expanded_route = libs.lib.expand_route(new_edst_entry['route'], [dep, dest])
+                        new_edst_entry['route_data'] = get_route_data(expanded_route)
+                    new_edst_entry['altitude'] = str(int(vatsim_fp.altitude)).zfill(3)
+                new_edst_entry['flightplan'] = vars(vatsim_fp)
+                new_edst_entry['update_time'] = datetime.utcnow().strftime(time_mask)
+                client.edst.data.update_one({'callsign': vatsim_callsign}, {'$set': new_edst_entry})
                 continue
-        dep_info = reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False})
-        dest_info = reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False})
-        if not (dep_info or dest_info):
+        # if brand new or outdated or dep/dest changed
+        dep_info = reader_client.navdata.airports.find_one({'icao': dep.upper()}, {'_id': False, 'procedures': False})
+        dest_info = reader_client.navdata.airports.find_one({'icao': dest.upper()}, {'_id': False, 'procedures': False})
+        if not dep_info and not dest_info:
             continue
-        if dep_info:
-            del dep_info['procedures']
-        if dest_info:
-            del dest_info['procedures']
+        # TODO: cid class
         cid = get_cid(used_cid_list)
         used_cid_list.append(cid)
-        beacon = assign_beacon(fp, codes_in_use) or '0000'
+        # TODO: beacon class
+        beacon = assign_beacon(vatsim_fp, codes_in_use) or '0000'
         # if beacon is None:
         #     artcc = dep_info['artcc'].upper() if dep_info else dest_info['artcc'].upper()
         #     beacon = get_beacon(artcc, codes_in_use)
         codes_in_use.append(beacon)
-        route = fp.route
-        aircraft_faa = fp.aircraft_faa.split('/')
+        vatsim_route = vatsim_fp.route
+        aircraft_faa = vatsim_fp.aircraft_faa.split('/')
         try:
             equipment = (aircraft_faa[-1])[0] if len(aircraft_faa) > 1 else ''
         except IndexError:
             equipment = ''
         # airways = libs.lib.get_airways_on_route(fp.route)
-        expanded_route = libs.lib.expand_route(libs.lib.format_route(route), [dep, dest])
+        expanded_route = libs.lib.expand_route(libs.lib.format_route(vatsim_route), [dep, dest])
         route_key = f'{dep}_{dest}'
+        # write formatted route and route_data for prefroutes into database
         if route_key not in prefroutes.keys():
             local_dep = re.sub(r'^K?', '', dep)
             local_dest = re.sub(r'^K?', '', dest)
             cdr = list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
-            pdr = list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
+            prd = list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
             for r in cdr:
                 r['route_data'] = get_route_data(libs.lib.expand_route(' '.join(r['route'].split('.')), [dep, dest]))
                 r['route'] = libs.lib.format_route(re.sub(rf'{dep}|{dest}', '', r['route']))
-            for r in pdr:
+            for r in prd:
                 r['route_data'] = get_route_data(libs.lib.expand_route(r['route'], [dep, dest]))
-            prefroutes[route_key] = cdr + pdr
-        adr = libs.adr_lib.get_adr(fp)
+            prefroutes[route_key] = cdr + prd
+        adr = libs.adr_lib.get_adr(vatsim_fp)
         for a in adr:
-            amendment = libs.adr_lib.amend_adr(route, a)
+            amendment = libs.adr_lib.amend_adr(vatsim_route, a)
             a['amendment'] = amendment
-        adar = libs.adar_lib.get_adar(fp)
+        adar = libs.adar_lib.get_adar(vatsim_fp)
         for a in adar:
             a['route_data'] = get_route_data(a['route_fixes'])
             a['route'] = libs.lib.format_route(a['route'])
-        entry = {'callsign': callsign, 'type': fp.aircraft_short, 'equipment': equipment, 'beacon': beacon, 'dep': dep,
-                 'dep_info': dep_info, 'dest': dest, 'dest_info': dest_info, 'route': libs.lib.format_route(route),
-                 'route_data': get_route_data(expanded_route), 'altitude': str(int(fp.altitude)).zfill(3),
-                 'interim': None, 'hdg': None, 'spd': None, 'hold_fix': None, 'hold_hdg': None, 'hold_spd': None,
-                 'remarks': fp.remarks, 'cid': cid, 'scratchpad': '', 'flightplan': vars(fp), 'adr': adr, 'adar': adar,
-                 'routes': prefroutes[route_key], 'update_time': datetime.utcnow().strftime(time_mask)}
-        client.edst.data.update_one({'callsign': callsign}, {'$set': entry}, upsert=True)
-    for callsign, entry in data.items():
-        update_time = entry['update_time']
-        if datetime.strptime(update_time, time_mask) + timedelta(minutes=30) < datetime.utcnow():
+        new_edst_entry = {'callsign': vatsim_callsign, 'type': vatsim_fp.aircraft_short, 'equipment': equipment,
+                          'beacon': beacon, 'dep': dep,
+                          'dep_info': dep_info, 'dest': dest, 'dest_info': dest_info,
+                          'route': libs.lib.format_route(vatsim_route),
+                          'route_data': get_route_data(expanded_route),
+                          'altitude': str(int(vatsim_fp.altitude)).zfill(3),
+                          'interim': None, 'hdg': None, 'spd': None, 'hold_fix': None, 'hold_hdg': None,
+                          'hold_spd': None,
+                          'remarks': vatsim_fp.remarks, 'cid': cid, 'scratchpad': '', 'flightplan': vars(vatsim_fp),
+                          'adr': adr, 'adar': adar,
+                          'routes': prefroutes[route_key], 'update_time': datetime.utcnow().strftime(time_mask)}
+        client.edst.data.update_one({'callsign': vatsim_callsign}, {'$set': new_edst_entry}, upsert=True)
+    # remove outdated entries
+    for callsign, edst_entry in edst_entries.items():
+        update_time = edst_entry['update_time']
+        if datetime.strptime(update_time, time_mask) < datetime.utcnow() - timedelta(minutes=30):
             client.edst.data.delete_one({'callsign': callsign})
     client.close()
 
