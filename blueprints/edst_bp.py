@@ -8,7 +8,7 @@ import mongo_client
 # TODO: write this list to database
 EDST_KEYS = ['aircraft', 'type', 'equipment', 'route', 'route_data', 'altitude', 'interim', 'hdg', 'spd',
              'previous_route', 'previous_route_data',
-             'hold_data', 'scratchpad', 'free_text', 'beacon', 'cleared_direct']
+             'hold_data', 'free_text_content', 'beacon', 'cleared_direct']
 
 edst_blueprint = Blueprint('edst', __name__)
 

@@ -1,4 +1,5 @@
 import atexit
+import logging
 
 from flask import Flask
 # from flask_cors import CORS
@@ -22,7 +23,7 @@ cache_config = {
     "CACHE_DEFAULT_TIMEOUT": 15
 }
 
-# data_lock = threading.Lock()
+data_lock = threading.Lock()
 update_thread = threading.Thread()
 POOL_TIME = 20
 
@@ -38,8 +39,11 @@ def create_app():
 
     def loop():
         global update_thread
-        # with data_lock:
-        libs.edst_lib.update_edst_data()
+        with data_lock:
+            try:
+                libs.edst_lib.update_edst_data()
+            except Exception as e:
+                logging.Logger(str(e))
         update_thread = threading.Timer(POOL_TIME, loop, ())
         update_thread.start()
 
