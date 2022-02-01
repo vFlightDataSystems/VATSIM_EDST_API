@@ -132,7 +132,7 @@ def expand_route(route: str, airports=None) -> list:
         else:
             new_route.append(segment)
         prev_segment = segment
-
+    # remove duplicates
     return list(dict.fromkeys(new_route))
 
 
