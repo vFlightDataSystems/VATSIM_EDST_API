@@ -51,7 +51,7 @@ def _get_all_edst():
 
 @edst_blueprint.route('/fav/<artcc>')
 def _get_fav(artcc):
-    data = libs.edst_lib.get_fav(artcc)
+    data = libs.edst_lib.get_fav_data(artcc)
     return jsonify(data)
 
 
