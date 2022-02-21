@@ -2,6 +2,9 @@ import csv
 import re
 import json
 from collections import defaultdict
+from io import BytesIO
+from urllib import request
+from zipfile import ZipFile
 
 from dms2dec.dms_convert import dms2dec
 
@@ -30,6 +33,13 @@ type_altitudes = {
     'TEC': [0, 18000],
     'NAR': [0, 99000]
 }
+
+
+def download_nasr_data(release_date):
+    filename = f'28DaySubscription_Effective_{release_date}.zip'
+    url = request.urlopen(f'https://nfdc.faa.gov/webContent/28DaySub/{filename}')
+    with ZipFile(BytesIO(url.read())) as zip_file:
+        zip_file.extractall('NASR')
 
 
 def write_acdata(rows):

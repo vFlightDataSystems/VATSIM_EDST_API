@@ -40,30 +40,10 @@ def get_edst_data():
     return list(client.edst.data.find({}, {'_id': False}))
 
 
-def get_boundary_data(artcc):
+def get_fav_data(artcc):
     client: MongoClient = g.mongo_reader_client
-    boundary_data = list(client[artcc.lower()].boundary_data.find({}, {'_id': False}))
-    return boundary_data
-
-
-# def get_artcc_edst_data(artcc):
-#     client: MongoClient = g.mongo_reader_client
-#     edst_data = client.edst.data.find({}, {'_id': False})
-#     boundary_data = client[artcc.lower()].boundary_data.find_one({}, {'_id': False})
-#     geometry = geopandas.GeoSeries(shape(boundary_data['geometry'])).set_crs(epsg=4326).to_crs("EPSG:3857")
-#     artcc_data = []
-#     # geometry.plot()
-#     # plt.savefig(f'{artcc}_boundary_plot.jpg')
-#     flightplans = libs.lib.get_all_flightplans().keys()
-#     for e in edst_data:
-#         if e['callsign'] not in flightplans:
-#             continue
-#         pos = geopandas.GeoSeries([Point(e['flightplan']['lon'], e['flightplan']['lat'])]) \
-#             .set_crs(epsg=4326).to_crs("EPSG:3857")
-#         dist = (float(geometry.distance(pos)) / 1000) * KM_NM_CONVERSION_FACTOR
-#         if dist < 150:
-#             artcc_data.append(e)
-#     return artcc_data
+    fav_data = list(client[artcc.lower()].fav.find({}, {'_id': False}))
+    return fav_data
 
 
 def update_edst_data():

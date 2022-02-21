@@ -401,11 +401,11 @@ def add_mongo_users():
         )
 
 
-def write_boundary_data():
+def write_fav():
     client = get_admin_mongo_client()
     with open('Boundaries.json', 'r') as f:
-        boundary_data = [e for e in json.load(f)['features'] if re.match(r'K\S{3}', e['properties']['id'])]
-        for e in boundary_data:
+        fav = [e for e in json.load(f)['features'] if re.match(r'K\S{3}', e['properties']['id'])]
+        for e in fav:
             artcc = e['properties']['id'][1:].lower()
             if e['geometry']['type'] == 'MultiPolygon' and len(e['geometry']['coordinates']) == 1:
                 e['geometry']['type'] = 'Polygon'
@@ -413,21 +413,33 @@ def write_boundary_data():
             del e['properties']['label_lat']
             del e['properties']['label_lon']
             del e['type']
-            col = client[artcc]['boundary_data']
+            col = client[artcc]['fav']
             col.drop()
             col.insert_one(e)
     client.close()
 
 
-def write_artcc_boundary_data(artcc):
+def write_artcc_fav(artcc):
     client = get_admin_mongo_client()
     with open(f'{artcc.upper()}_Sector_Data.json', 'r') as f:
-        client[artcc]['boundary_data'].insert_many(json.load(f)['features'])
+        col = client[artcc]['fav']
+        col.insert_many(json.load(f)['features'])
+    client.close()
+
+
+def write_all_artcc_ref_fixes():
+    client = get_admin_mongo_client()
+    with open('All_ARTCC_Ref_Fixes.json', 'r') as f:
+        ref_fix_data = json.load(f)
+        for artcc, fixes in ref_fix_data.items():
+            col = client[artcc.lower()]['reference_fixes']
+            col.drop()
+            col.insert_many(fixes)
     client.close()
 
 
 if __name__ == '__main__':
-    write_navdata(nav_db_name)
+    # write_navdata(nav_db_name)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
     # with open(STARDP_FILENAME, 'r') as f:
     #     stardp_data = json.load(f)
@@ -443,6 +455,7 @@ if __name__ == '__main__':
     # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
-    # write_boundary_data()
-    # write_artcc_boundary_data('zlc')
+    write_fav()
+    write_artcc_fav('zlc')
+    # write_all_artcc_ref_fixes()
     pass
