@@ -58,6 +58,16 @@ def _metar(airport):
     return jsonify(metar_list)
 
 
+@weather_blueprint.route('/sigmets')
+def _get_sigmets():
+    response = requests.get(
+        'https://www.aviationweather.gov/adds/dataserver_current'
+        '/httpparam?dataSource=airsigmets&requestType=retrieve&format=xml&hoursBeforeNow=6')
+    tree = etree.fromstring(response.content)
+    sigmet_list = [e.text for e in tree.iter('raw_text')]
+    return jsonify(sigmet_list)
+
+
 @weather_blueprint.route('/datis/airport/<airport>')
 def _get_datis(airport):
     return jsonify(get_datis(airport))
