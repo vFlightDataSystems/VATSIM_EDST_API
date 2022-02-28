@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Optional
 
@@ -63,8 +64,21 @@ def _get_sigmets():
     response = requests.get(
         'https://www.aviationweather.gov/adds/dataserver_current'
         '/httpparam?dataSource=airsigmets&requestType=retrieve&format=xml&hoursBeforeNow=6')
+    sigmet_list = []
     tree = etree.fromstring(response.content)
-    sigmet_list = [e.text for e in tree.iter('raw_text')]
+    for entry in tree.iter('AIRSIGMET'):
+        try:
+            sigmet_entry = {
+                'text': entry.find('raw_text').text,
+                'hazard': dict(entry.find('hazard').attrib),
+                'area': [[p.find('longitude').text, p.find('latitude').text] for p in entry.find('area').iter('point')],
+                'altitude': dict(entry.find('altitude').attrib),
+                'airsigmet_type': entry.find('airsigmet_type').text,
+            }
+            sigmet_list.append(sigmet_entry)
+        except Exception as e:
+            print(str(e))
+            logging.Logger(str(e))
     return jsonify(sigmet_list)
 
 
