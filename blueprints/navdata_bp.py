@@ -33,13 +33,13 @@ def _get_waypoint(waypoint: str):
 
 
 @navdata_blueprint.route('/<artcc>/vor')
-def _get_artcc_vor_list(artcc: str):
+def _get_artcc_low_vor_list(artcc: str):
     client: MongoClient = g.mongo_reader_client
-    vor_list = set(client.navdata.waypoints.find({'artcc_low': artcc.upper(), 'type': {'$regex': '.*VOR.*'}},
-                                                 {'_id': False})) \
-        .union(set(client.navdata.waypoints.find({'artcc_high': artcc.upper(), 'type': {'$regex': '.*VOR.*'}},
-                                                 {'_id': False})))
-    return jsonify(list(vor_list))
+    vor_list = list(client.navdata.waypoints.find({'artcc_low': artcc.upper(), 'type': {'$regex': '.*VOR.*'}},
+                                                  {'_id': False})) \
+               + list(client.navdata.waypoints.find({'artcc_high': artcc.upper(), 'type': {'$regex': '.*VOR.*'}},
+                                                    {'_id': False}))
+    return jsonify(vor_list)
 
 
 @navdata_blueprint.route('/procedure/<procedure>')
