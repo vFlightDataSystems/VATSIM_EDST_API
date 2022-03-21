@@ -61,13 +61,17 @@ def parse_navaid_data():
                     lon = dms2dec(line[396:410].strip())
                     nav_id = line[4:8].strip()
                     name = line[42:72].strip()
-                    rows.append({'navaid_id': nav_id, 'type': nav_type, 'name': name, 'lat': lat, 'lon': lon})
+                    artcc_high = line[303:307].strip()
+                    artcc_low = line[337:341].strip()
+                    rows.append(
+                        {'navaid_id': nav_id, 'type': nav_type, 'name': name, 'lat': lat, 'lon': lon,
+                         'artcc_low': artcc_low, 'artcc_high': artcc_high})
     return rows
 
 
 def write_navaid_data(rows):
     with open('out/navaid_data.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['navaid_id', 'type', 'name', 'lat', 'lon'])
+        writer = csv.DictWriter(f, fieldnames=['navaid_id', 'type', 'name', 'lat', 'lon', 'artcc_low', 'artcc_high'])
         writer.writeheader()
         writer.writerows(rows)
 
@@ -81,13 +85,16 @@ def parse_fixdata():
                 lon = dms2dec(line[80:94].strip())
                 fix_id = line[4:34].strip()
                 name = fix_id
-                rows.append({'fix_id': fix_id, 'name': name, 'lat': lat, 'lon': lon})
+                artcc_high = line[233:237].strip()
+                artcc_low = line[237:241].strip()
+                rows.append({'fix_id': fix_id, 'name': name, 'lat': lat, 'lon': lon,
+                             'artcc_low': artcc_low, 'artcc_high': artcc_high})
     return rows
 
 
 def write_fixdata(rows):
     with open('out/fixdata.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['fix_id', 'name', 'lat', 'lon'])
+        writer = csv.DictWriter(f, fieldnames=['fix_id', 'name', 'lat', 'lon', 'artcc_low', 'artcc_high'])
         writer.writeheader()
         writer.writerows(rows)
 
@@ -101,7 +108,7 @@ def write_navdata_combined(navaid_rows, fix_rows):
         row['waypoint_id'] = row['navaid_id']
         del row['navaid_id']
     with open('out/navdata_combined.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['waypoint_id', 'type', 'name', 'lat', 'lon'])
+        writer = csv.DictWriter(f, fieldnames=['waypoint_id', 'type', 'name', 'lat', 'lon', 'artcc_low', 'artcc_high'])
         writer.writeheader()
         writer.writerows(navaid_rows + fix_rows)
 
@@ -177,10 +184,8 @@ def parse_stardp():
     rows = []
     with open(CIFP_FILENAME, 'r') as cifp_f:
         entry = None
-        entry_id = ''
         prev_entry_id = None
         prev_transition = None
-        transition = None
         route = []
         for line in cifp_f.readlines():
             if line[12] in ['D', 'E'] and line[:5] == 'SUSAP':
