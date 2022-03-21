@@ -55,14 +55,13 @@ def parse_navaid_data():
     with open(NAVDATA_FILENAME, 'r') as f:
         for line in f.readlines():
             if line[:4] == 'NAV1':
-                lat = dms2dec(line[371:385].strip())
-                lon = dms2dec(line[396:410].strip())
                 nav_type = line[8:28].strip()
-                nav_id = line[4:8].strip()
-                name = line[42:72].strip()
-                if nav_type != 'VOT':
-                    rows.append(
-                        {'navaid_id': nav_id, 'type': nav_type, 'name': name, 'lat': lat, 'lon': lon})
+                if nav_type != 'VOT' and nav_type != 'FAN MARKER':
+                    lat = dms2dec(line[371:385].strip())
+                    lon = dms2dec(line[396:410].strip())
+                    nav_id = line[4:8].strip()
+                    name = line[42:72].strip()
+                    rows.append({'navaid_id': nav_id, 'type': nav_type, 'name': name, 'lat': lat, 'lon': lon})
     return rows
 
 
