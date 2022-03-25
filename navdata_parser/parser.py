@@ -192,11 +192,13 @@ def parse_stardp():
                 entry_id = line[6:19]
                 # seq_num = line[26:29].strip()
                 transition = line[20:26].strip()
+                if prev_transition is None:
+                    prev_transition = transition
                 fix_name = line[29:34].strip()
-                if prev_transition != transition and entry:
+                if (prev_transition != transition or entry_id != prev_entry_id) and len(route) > 0:
                     if prev_transition != 'ALL':
                         entry['transitions'].append(prev_transition)
-                    entry['routes'].append({'transition': prev_transition, 'route': route})
+                    entry['routes'].append({'transition': prev_transition, 'route': list(dict.fromkeys(route))})
                     prev_transition = transition
                     route = []
                 if entry_id != prev_entry_id:
@@ -209,8 +211,10 @@ def parse_stardp():
                         'transitions': [],
                         'routes': []
                     }
+                    route = []
+                    prev_transition = None
+                    prev_entry_id = entry_id
                 route.append(fix_name)
-                prev_entry_id = entry_id
     return rows
 
 
@@ -293,6 +297,8 @@ def parse_awy():
                 entry = {
                     'airway': awy_name,
                     'wpt': '',
+                    'lat': '',
+                    'lon': '',
                     'type': '',
                     'sequence': line[10:15].strip(),
                     'mea': mea,
@@ -303,6 +309,11 @@ def parse_awy():
                 }
             if line[:4] == 'AWY2':
                 entry['wpt'] = line[120:160].split('*')[1]
+                lat_str = line[83:97].strip()
+                lon_str = line[97:111].strip()
+                if lat_str and lon_str:
+                    entry['lat'] = dms2dec(lat_str)
+                    entry['lon'] = dms2dec(lon_str)
                 entry['type'] = re.sub(r'.*-PT', 'FIX', line[45:64].strip())
         if rows[-1] != entry:
             rows.append(entry)
@@ -336,7 +347,7 @@ def parse_ats():
 
 def write_awy(rows):
     with open('out/airways.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['airway', 'wpt', 'type', 'sequence', 'mea', 'max_auth_alt', 'moa',
+        writer = csv.DictWriter(f, fieldnames=['airway', 'wpt', 'lat', 'lon', 'type', 'sequence', 'mea', 'max_auth_alt', 'moa',
                                                'min_crossing_alt', 'artcc'])
         writer.writeheader()
         writer.writerows(rows)

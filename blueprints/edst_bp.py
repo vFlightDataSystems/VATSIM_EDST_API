@@ -74,6 +74,44 @@ def _get_aar(artcc, cid):
     return jsonify(aar_data)
 
 
+@edst_blueprint.route('/gpd/<artcc>/sectors')
+def _get_gpd_sectors(artcc: str):
+    client: MongoClient = g.mongo_reader_client
+    data = list(client[artcc.lower()].gpd_sectors.find({}, {'_id': False}))
+    return jsonify(data)
+
+
+@edst_blueprint.route('/gpd/<artcc>/airports')
+def _get_gpd_airports(artcc: str):
+    client: MongoClient = g.mongo_reader_client
+    data = list(client[artcc.lower()].gpd_airports.find({}, {'_id': False}))
+    return jsonify(data)
+
+
+@edst_blueprint.route('/gpd/<artcc>/navaids')
+def _get_gpd_navaids(artcc: str):
+    client: MongoClient = g.mongo_reader_client
+    try:
+        data = list(client[artcc.lower()].gpd_navaids.find({}, {'_id': False}))
+        return jsonify(data)
+    except Exception:
+        pass
+    try:
+        data = list(client[artcc.lower()].gpd_navaids_low.find({}, {'_id': False})) \
+               + list(client[artcc.lower()].gpd_navaids_high.find({}, {'_id': False}))
+        return jsonify(data)
+    except Exception:
+        pass
+    return jsonify(204)
+
+
+@edst_blueprint.route('/gpd/<artcc>/waypoints')
+def _get_gpd_waypoints(artcc: str):
+    client: MongoClient = g.mongo_reader_client
+    data = list(client[artcc.lower()].gpd_waypoints.find({}, {'_id': False}))
+    return jsonify(data)
+
+
 @edst_blueprint.route('/reference_fixes/<artcc>')
 def _get_reference_fix_list(artcc):
     client: MongoClient = g.mongo_reader_client

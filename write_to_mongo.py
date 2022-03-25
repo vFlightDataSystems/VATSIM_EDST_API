@@ -427,6 +427,18 @@ def write_artcc_fav(artcc):
     client.close()
 
 
+def write_gpd_data(artcc):
+    client = get_admin_mongo_client()
+    with open(f'gpd/{artcc.upper()}_gpd_config.json', 'r') as f:
+        gpd_data = json.load(f)
+        for key, val in gpd_data.items():
+            col = client[artcc][f'gpd_{key}']
+            col.drop()
+            col.insert_many(val)
+
+    client.close()
+
+
 def write_all_artcc_ref_fixes():
     client = get_admin_mongo_client()
     with open('All_ARTCC_Ref_Fixes.json', 'r') as f:
@@ -455,7 +467,8 @@ if __name__ == '__main__':
     # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
-    # write_fav()
-    # write_artcc_fav('zbw')
+    write_fav()
+    write_artcc_fav('zbw')
+    write_gpd_data('zbw')
     # write_all_artcc_ref_fixes()
     pass

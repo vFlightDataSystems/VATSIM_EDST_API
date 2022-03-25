@@ -48,6 +48,13 @@ def _get_artcc_high_vor_list(artcc: str):
     return jsonify(vor_list)
 
 
+@navdata_blueprint.route('/<artcc>/airway')
+def _get_artcc_airway_list(artcc: str):
+    client: MongoClient = g.mongo_reader_client
+    airway_list = list(client.navdata.airways.find({'artcc': artcc.upper()}, {'_id': False}))
+    return jsonify(airway_list)
+
+
 @navdata_blueprint.route('/procedure/<procedure>')
 def _get_procedure(procedure: str):
     client: MongoClient = g.mongo_reader_client
