@@ -91,18 +91,11 @@ def _get_gpd_airports(artcc: str):
 @edst_blueprint.route('/gpd/<artcc>/navaids')
 def _get_gpd_navaids(artcc: str):
     client: MongoClient = g.mongo_reader_client
-    try:
-        data = list(client[artcc.lower()].gpd_navaids.find({}, {'_id': False}))
-        return jsonify(data)
-    except Exception:
-        pass
-    try:
+    data = list(client[artcc.lower()].gpd_navaids.find({}, {'_id': False}))
+    if not data:
         data = list(client[artcc.lower()].gpd_navaids_low.find({}, {'_id': False})) \
                + list(client[artcc.lower()].gpd_navaids_high.find({}, {'_id': False}))
-        return jsonify(data)
-    except Exception:
-        pass
-    return jsonify(204)
+    return jsonify(data)
 
 
 @edst_blueprint.route('/gpd/<artcc>/waypoints')
