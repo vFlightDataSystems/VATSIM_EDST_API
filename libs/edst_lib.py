@@ -40,10 +40,22 @@ def get_edst_data():
     return list(client.edst.data.find({}, {'_id': False}))
 
 
-def get_fav_data(artcc):
+def get_ctr_fav_data(artcc):
     client: MongoClient = g.mongo_reader_client
-    fav_data = list(client[artcc.lower()].fav.find({}, {'_id': False}))
+    fav_data = list(client[artcc.lower()].ctr_fav.find({}, {'_id': False}))
     return fav_data
+
+
+def get_app_fav_data(artcc):
+    client: MongoClient = g.mongo_reader_client
+    fav_data = list(client[artcc.lower()].app_fav.find({}, {'_id': False}))
+    return fav_data
+
+
+def get_ctr_profiles(artcc):
+    client: MongoClient = g.mongo_reader_client
+    profiles = list(client[artcc.lower()].ctr_profiles.find({}, {'_id': False}))
+    return profiles
 
 
 def update_edst_data():

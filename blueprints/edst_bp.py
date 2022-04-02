@@ -50,8 +50,26 @@ def _get_all_edst():
 
 
 @edst_blueprint.route('/fav/<artcc>')
-def _get_fav(artcc):
-    data = libs.edst_lib.get_fav_data(artcc)
+def _get_ctr_fav_old(artcc):
+    data = libs.edst_lib.get_ctr_fav_data(artcc)
+    return jsonify(data)
+
+
+@edst_blueprint.route('/fav/<artcc>/ctr')
+def _get_ctr_fav(artcc):
+    data = libs.edst_lib.get_ctr_fav_data(artcc)
+    return jsonify(data)
+
+
+@edst_blueprint.route('/fav/<artcc>/app')
+def _get_app_fav(artcc):
+    data = libs.edst_lib.get_app_fav_data(artcc)
+    return jsonify(data)
+
+
+@edst_blueprint.route('/fav/<artcc>/profiles')
+def _get_app_fav(artcc):
+    data = libs.edst_lib.get_ctr_profiles(artcc)
     return jsonify(data)
 
 

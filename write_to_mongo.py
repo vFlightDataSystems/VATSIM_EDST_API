@@ -413,7 +413,7 @@ def write_fav():
             del e['properties']['label_lat']
             del e['properties']['label_lon']
             del e['type']
-            col = client[artcc]['fav']
+            col = client[artcc]['ctr_fav']
             col.drop()
             col.insert_one(e)
     client.close()
@@ -421,10 +421,27 @@ def write_fav():
 
 def write_artcc_fav(artcc):
     client = get_admin_mongo_client()
-    with open(f'fav/{artcc.upper()}_Sector_Data.geojson', 'r') as f:
-        col = client[artcc]['fav']
-        col.insert_many(json.load(f)['features'])
+    ctr_fav_path = f'fav/{artcc.lower}/{artcc.upper()}_CTR_FAV_Data.geojson'
+    app_fav_path = f'fav/{artcc.lower}/{artcc.upper()}_APP_FAV_Data.geojson'
+    if os.path.exists(ctr_fav_path):
+        with open(ctr_fav_path, 'r') as f:
+            col = client[artcc]['ctr_fav']
+            col.insert_many(json.load(f)['features'])
+    if os.path.exists(app_fav_path):
+        with open(app_fav_path, 'r') as f:
+            col = client[artcc]['app_fav']
+            col.drop()
+            col.insert_many(json.load(f)['features'])
     client.close()
+
+
+def write_artcc_profiles(artcc):
+    client = get_admin_mongo_client()
+    path = f'fav/{artcc.lower}/{artcc.upper()}_Sector_Profiles.geojson'
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            col = client[artcc]['ctr_profiles']
+            col.insert_many(json.load(f))
 
 
 def write_gpd_data(artcc):
@@ -451,7 +468,7 @@ def write_all_artcc_ref_fixes():
 
 
 if __name__ == '__main__':
-    write_navdata(nav_db_name)
+    # write_navdata(nav_db_name)
     # write_nattypes(NATTYPE_FILENAME, fd_db_name)
     # with open(STARDP_FILENAME, 'r') as f:
     #     stardp_data = json.load(f)
@@ -469,6 +486,8 @@ if __name__ == '__main__':
     # add_mongo_users()
     write_fav()
     write_artcc_fav('zbw')
+    write_artcc_fav('zlc')
     write_gpd_data('zbw')
+    write_artcc_profiles('zlc')
     # write_all_artcc_ref_fixes()
     pass
