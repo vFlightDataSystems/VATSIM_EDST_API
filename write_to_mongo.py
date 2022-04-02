@@ -421,8 +421,8 @@ def write_fav():
 
 def write_artcc_fav(artcc):
     client = get_admin_mongo_client()
-    ctr_fav_path = f'fav/{artcc.lower}/{artcc.upper()}_CTR_FAV_Data.geojson'
-    app_fav_path = f'fav/{artcc.lower}/{artcc.upper()}_APP_FAV_Data.geojson'
+    ctr_fav_path = f'fav/{artcc.lower()}/{artcc.upper()}_CTR_FAV_Data.geojson'
+    app_fav_path = f'fav/{artcc.lower()}/{artcc.upper()}_APP_FAV_Data.geojson'
     if os.path.exists(ctr_fav_path):
         with open(ctr_fav_path, 'r') as f:
             col = client[artcc]['ctr_fav']
