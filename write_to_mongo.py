@@ -6,6 +6,7 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
+from geopy.distance import distance
 
 from pymongo import MongoClient
 from config import *
@@ -437,21 +438,55 @@ def write_artcc_fav(artcc):
 
 def write_artcc_profiles(artcc):
     client = get_admin_mongo_client()
-    path = f'fav/{artcc.lower}/{artcc.upper()}_Sector_Profiles.geojson'
+    path = f'fav/{artcc.lower()}/{artcc.upper()}_Sector_Profiles.json'
     if os.path.exists(path):
         with open(path, 'r') as f:
             col = client[artcc]['ctr_profiles']
-            col.insert_many(json.load(f))
+            data = json.load(f)
+            mongo_data = []
+            for profile_id, profile_data in data.items():
+                mongo_data.append({'id': profile_id, 'name': profile_data['name'], 'sectors': profile_data['sectors']})
+            col.insert_many(mongo_data)
 
 
 def write_gpd_data(artcc):
     client = get_admin_mongo_client()
     with open(f'gpd/{artcc.upper()}_gpd_config.json', 'r') as f:
         gpd_data = json.load(f)
-        for key, val in gpd_data.items():
-            col = client[artcc][f'gpd_{key}']
-            col.drop()
-            col.insert_many(val)
+        navaid_list = []
+        navdata_prefs = gpd_data['navdata_prefs']
+        basepoint = (float(navdata_prefs['artcc_base_lat']), float(navdata_prefs['artcc_base_lon']))
+        rad = int(navdata_prefs['radius'])
+        for navaid in client.navdata.navaids.find({}, {'_id': False, 'artcc_low': False, 'artcc_high': False, 'name': False}):
+            navaid_pos = (float(navaid['lat']), float(navaid['lon']))
+            if distance(basepoint, navaid_pos).nautical < rad:
+                navaid_list.append(navaid)
+        col = client[artcc]['gpd_navaids']
+        col.drop()
+        col.insert_many(navaid_list)
+        airport_list = []
+        for airport in client.navdata.navaids.find({}, {'_id': False, 'city': False, 'elevation': False, 'name': False, 'procedures': False, 'runways': False}):
+            airport_pos = (float(airport['lat']), float(airport['lon']))
+            if distance(basepoint, airport_pos).nautical < rad:
+                airport_list.append(airport)
+        airway_segment_list = []
+        for awy_segment in client.navdata.airways.find({}, {'_id': False, 'artcc': False, 'min_crossing_alt': False, 'max_auth_alt': False, 'moa': False, 'mea': False}):
+            if awy_segment['lat'] and awy_segment['lon']:
+                segment_pos = (float(awy_segment['lat']), float(awy_segment['lon']))
+                if distance(basepoint, segment_pos).nautical < rad:
+                    airway_segment_list.append(awy_segment)
+        col = client[artcc]['gpd_airways']
+        col.drop()
+        col.insert_many(airway_segment_list)
+        col = client[artcc]['gpd_airports']
+        col.drop()
+        col.insert_many(airport_list)
+        col = client[artcc]['gpd_sectors']
+        col.drop()
+        col.insert_many(gpd_data['sectors'])
+        col = client[artcc]['gpd_waypoints']
+        col.drop()
+        col.insert_many(navdata_prefs['fixes'])
 
     client.close()
 
@@ -484,10 +519,11 @@ if __name__ == '__main__':
     # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
-    write_fav()
-    write_artcc_fav('zbw')
-    write_artcc_fav('zlc')
+    # write_fav()
+    # write_artcc_fav('zbw')
+    # write_artcc_fav('zlc')
     write_gpd_data('zbw')
-    write_artcc_profiles('zlc')
+    write_gpd_data('zlc')
+    # write_artcc_profiles('zlc')
     # write_all_artcc_ref_fixes()
     pass
