@@ -43,7 +43,7 @@ def _update_entry():
     return jsonify(ret_data)
 
 
-@edst_blueprint.route('/amend/route', methods=['POST'])
+@edst_blueprint.route('/entry/amend/route', methods=['POST'])
 def _amend_route():
     post_data = request.get_json()
     if not post_data or 'callsign' not in post_data.keys():
