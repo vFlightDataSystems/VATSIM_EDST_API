@@ -168,6 +168,35 @@ def update_edst_entry(callsign, data):
     return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
 
 
+def amend_route(callsign, **kwargs):
+    keys = kwargs.keys()
+    entry = get_edst_entry(callsign)
+    route = entry['route']
+    route_data = entry['route_data']
+    route_fixes = [e['name'] for e in route_data]
+    if 'direct' in keys and 'frd' in keys:
+        direct_fix = kwargs['direct']
+        if direct_fix in route_fixes:
+            index = route_fixes.index(direct_fix)
+            route_data = route_data[index:]
+            for fix in reversed(route_fixes[:index+1]):
+                if fix in route:
+                    frd = kwargs['frd']
+                    route = f'{frd}..' + route[route.index(fix):]
+            amend_data = {'route': route, 'route_data': route_data}
+            update_edst_entry(callsign, amend_data)
+            return amend_data
+        else:
+            return None
+    elif 'route' in keys:
+        expanded_route = libs.lib.expand_route(kwargs['route'])
+        route_data = get_route_data(expanded_route)
+        amend_data = {'route': kwargs['route'], route_data: route_data}
+        update_edst_entry(callsign, amend_data)
+        return amend_data
+    return None
+
+
 def get_route_data(fixes: list) -> list:
     """
 

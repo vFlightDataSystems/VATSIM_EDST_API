@@ -43,6 +43,16 @@ def _update_entry():
     return jsonify(ret_data)
 
 
+@edst_blueprint.route('/amend/route', methods=['POST'])
+def _amend_route():
+    post_data = request.get_json()
+    if not post_data or 'callsign' not in post_data.keys():
+        return jsonify(204)
+    callsign = post_data['callsign']
+    result = libs.edst_lib.amend_route(callsign, post_data)
+    return jsonify(result) if result else jsonify(204)
+
+
 @edst_blueprint.route('/all')
 def _get_all_edst():
     data = libs.edst_lib.get_edst_data()
