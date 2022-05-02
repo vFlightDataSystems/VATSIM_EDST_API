@@ -2,12 +2,14 @@ import json.decoder
 import random
 import re
 from collections import defaultdict
+from math import pi
 from typing import Optional
 
 import requests
 from flask import g
 from flask_caching import Cache
 from pymongo import MongoClient
+from haversine import inverse_haversine, Unit
 
 import config
 import libs.adar_lib
@@ -209,6 +211,10 @@ def assign_beacon(fp: Flightplan) -> Optional[str]:
                 code = f'{random.choice(beacon_range):o}'.zfill(4)
                 break
     return code
+
+
+def get_frd_coordinates(lat: float, lon: float, bearing: float, distance: float):
+    return inverse_haversine((lat, lon), distance, pi * bearing / 360, unit=Unit.NAUTICAL_MILES)
 
 
 @cache.cached(timeout=15, key_prefix='all_connections')

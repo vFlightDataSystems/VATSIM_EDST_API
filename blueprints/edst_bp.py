@@ -24,12 +24,12 @@ def _close_mongo_clients(response):
     return response
 
 
-@edst_blueprint.route('/entry/<callsign>')
+@edst_blueprint.route('/entry/get/<callsign>')
 def _get_entry(callsign):
     return jsonify(libs.edst_lib.get_edst_entry(callsign))
 
 
-@edst_blueprint.route('/entry/update', methods=['POST'])
+@edst_blueprint.route('/entry/amend/generic', methods=['POST'])
 def _update_entry():
     post_data = request.get_json()
     if not post_data or 'callsign' not in post_data.keys():

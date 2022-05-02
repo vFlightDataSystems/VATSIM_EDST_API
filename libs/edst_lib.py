@@ -168,30 +168,33 @@ def update_edst_entry(callsign, data):
     return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
 
 
-def amend_route(callsign, **kwargs):
-    keys = kwargs.keys()
+def amend_route(callsign, data):
+    keys = data.keys()
     entry = get_edst_entry(callsign)
     route = entry['route']
     route_data = entry['route_data']
     route_fixes = [e['name'] for e in route_data]
     if 'direct' in keys and 'frd' in keys:
-        direct_fix = kwargs['direct']
+        frd = f'{data["frd"]["waypoint_id"]}{str(int(data["frd"]["bearing"])).zfill(3)}{str(int(data["frd"]["distance"])).zfill(3)}'
+        direct_fix = data['direct']
         if direct_fix in route_fixes:
             index = route_fixes.index(direct_fix)
             route_data = route_data[index:]
             for fix in reversed(route_fixes[:index+1]):
                 if fix in route:
-                    frd = kwargs['frd']
-                    route = f'{frd}..' + route[route.index(fix):]
+                    route = f'{frd}..{direct_fix}' + route[route.index(fix) + len(fix):]
+                    break
+            frd_pos = libs.lib.get_frd_coordinates(float(data["frd"]["lat"]), float(data["frd"]["lon"]), float(data["frd"]["bearing"]), float(data["frd"]["distance"]))
+            route_data = [{'name': frd, 'pos': frd_pos}] + route_data
             amend_data = {'route': route, 'route_data': route_data}
             update_edst_entry(callsign, amend_data)
             return amend_data
         else:
             return None
     elif 'route' in keys:
-        expanded_route = libs.lib.expand_route(kwargs['route'])
+        expanded_route = libs.lib.expand_route(data['route'])
         route_data = get_route_data(expanded_route)
-        amend_data = {'route': kwargs['route'], route_data: route_data}
+        amend_data = {'route': data['route'], route_data: route_data}
         update_edst_entry(callsign, amend_data)
         return amend_data
     return None
