@@ -214,7 +214,7 @@ def assign_beacon(fp: Flightplan) -> Optional[str]:
 
 
 def get_frd_coordinates(lat: float, lon: float, bearing: float, distance: float):
-    return inverse_haversine((lat, lon), distance, pi * bearing / 360, unit=Unit.NAUTICAL_MILES)
+    return reversed(inverse_haversine((lat, lon), distance, pi * bearing / 360, unit=Unit.NAUTICAL_MILES))
 
 
 @cache.cached(timeout=15, key_prefix='all_connections')
