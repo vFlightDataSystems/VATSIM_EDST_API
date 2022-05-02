@@ -77,8 +77,8 @@ def _get_sigmets():
             }
             sigmet_list.append(sigmet_entry)
         except Exception as e:
-            print(str(e))
-            logging.Logger(str(e))
+            pass
+            # logging.Logger(str(e))
     return jsonify(sigmet_list)
 
 
