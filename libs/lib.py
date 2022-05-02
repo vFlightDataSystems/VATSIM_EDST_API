@@ -71,7 +71,11 @@ def format_route(route: str):
     for s in route:
         segment_data = client.navdata.waypoints.find_one({'waypoint_id': s}, {'_id': False})
         is_fix = not (get_airway(s) or client.navdata.procedures.find_one({'procedure': s.upper()}, {'_id': False}))
-        if not segment_data and is_fix:
+        if match := re.match(r'(\w+)(\d{3})(\d{3})', s):
+            fix, bearing, distance = match.groups()
+            if client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
+                is_fix = True
+        elif not segment_data and is_fix:
             if s[-6:].isnumeric():
                 new_route += f'..{s}'
             elif not new_route[-6:] == '.[XXX]':

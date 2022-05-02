@@ -1,4 +1,5 @@
 import itertools
+import logging
 import re
 import random
 from collections import defaultdict
@@ -203,11 +204,20 @@ def amend_route(callsign, data):
 def get_route_data(fixes: list) -> list:
     """
 
-    :rtype: object
+    :rtype: list
     """
     client: MongoClient = mongo_client.reader_client
     points = []
     for fix in fixes:
+        try:
+            if match := re.match(r'(\w+)(\d{3})(\d{3})', fix):
+                fix, bearing, distance = match.groups()
+                wpt = client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False})
+                frd_pos = libs.lib.get_frd_coordinates(wpt["lat"], wpt["lon"], bearing, distance)
+                points.append({'name': fix, 'pos': frd_pos})
+        except Exception as e:
+            print(e)
+            logging.Logger(str(e))
         if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
             points.append({'name': fix, 'pos': (float(fix_data['lon']), float(fix_data['lat']))})
     return points
