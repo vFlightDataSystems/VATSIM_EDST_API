@@ -193,9 +193,16 @@ def amend_route(callsign, data):
         else:
             return None
     elif 'route' in keys:
-        expanded_route = libs.lib.expand_route(data['route'])
-        route_data = get_route_data(expanded_route)
-        amend_data = {'route': data['route'], route_data: route_data}
+        if 'route_data' in keys:
+            route_data = keys['route_data']
+        else:
+            expanded_route = libs.lib.expand_route(data['route'])
+            route_data = get_route_data(expanded_route)
+        route = data['route']
+        if 'frd' in keys:
+            frd = f'{data["frd"]["waypoint_id"]}{str(int(data["frd"]["bearing"])).zfill(3)}{str(int(data["frd"]["distance"])).zfill(3)}'
+            route = f'{frd}..{route}'
+        amend_data = {'route': route, route_data: route_data}
         update_edst_entry(callsign, amend_data)
         return amend_data
     return None
