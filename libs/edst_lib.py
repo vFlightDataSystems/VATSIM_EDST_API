@@ -169,7 +169,7 @@ def update_edst_entry(callsign, data):
     return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
 
 
-def amend_route(callsign, data):
+def get_amended_route(callsign, data):
     keys = data.keys()
     entry = get_edst_entry(callsign)
     route = entry['route']
@@ -188,7 +188,6 @@ def amend_route(callsign, data):
             frd_pos = libs.lib.get_frd_coordinates(float(data["frd"]["lat"]), float(data["frd"]["lon"]), float(data["frd"]["bearing"]), float(data["frd"]["distance"]))
             route_data = [{'name': frd, 'pos': frd_pos}] + route_data
             amend_data = {'route': route, 'route_data': route_data}
-            update_edst_entry(callsign, amend_data)
             return amend_data
         else:
             return None
@@ -203,7 +202,6 @@ def amend_route(callsign, data):
             frd = f'{data["frd"]["waypoint_id"]}{str(int(data["frd"]["bearing"])).zfill(3)}{str(int(data["frd"]["distance"])).zfill(3)}'
             route = f'{frd}..{route}'
         amend_data = {'route': libs.lib.format_route(route), 'route_data': route_data}
-        update_edst_entry(callsign, amend_data)
         return amend_data
     return None
 

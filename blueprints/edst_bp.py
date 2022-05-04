@@ -43,14 +43,26 @@ def _update_entry():
     return jsonify(ret_data)
 
 
+@edst_blueprint.route('/trial/route', methods=['POST'])
+def _trial_route_amendment():
+    post_data = request.get_json()
+    if not post_data or 'callsign' not in post_data.keys():
+        return jsonify(204)
+    callsign = post_data['callsign']
+    amend_data = libs.edst_lib.get_amended_route(callsign, post_data)
+    return jsonify(amend_data) if amend_data else jsonify(204)
+
+
 @edst_blueprint.route('/entry/amend/route', methods=['POST'])
 def _amend_route():
     post_data = request.get_json()
     if not post_data or 'callsign' not in post_data.keys():
         return jsonify(204)
     callsign = post_data['callsign']
-    result = libs.edst_lib.amend_route(callsign, post_data)
-    return jsonify(result) if result else jsonify(204)
+    amend_data = libs.edst_lib.get_amended_route(callsign, post_data)
+    if amend_data:
+        libs.edst_lib.update_edst_flightplan(callsign, amend_data)
+    return jsonify(amend_data) if amend_data else jsonify(204)
 
 
 @edst_blueprint.route('/all')
