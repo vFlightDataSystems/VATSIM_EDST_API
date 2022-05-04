@@ -183,7 +183,11 @@ def get_amended_route(route: str = None,
             route_data = route_data[index:]
             for fix in reversed(route_fixes[:index + 1]):
                 if fix in route:
-                    route = f'{frd_str}..{direct_fix}' + route[route.index(fix) + len(fix):]
+                    route = route[route.index(fix) + len(fix):]
+                    if not route[0].isdigit():
+                        route = f'{frd_str}..{direct_fix}' + route
+                    else:
+                        route = f'{frd_str}..{direct_fix}.{fix}' + route
                     break
             frd_pos = libs.lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
                                                    float(frd["distance"]))
