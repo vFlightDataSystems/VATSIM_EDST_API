@@ -157,7 +157,7 @@ def get_edst_entry(callsign: str) -> Optional[dict]:
     return client.edst.data.find_one({'callsign': callsign.upper()}, {'_id': False})
 
 
-def update_edst_entry(callsign, data):
+def update_edst_entry(callsign: str, data: dict):
     client: MongoClient = g.mongo_edst_client
     if 'route' in data.keys() and 'route_data' not in data.keys():
         data['route'] = libs.lib.format_route(data['route'])
@@ -169,37 +169,35 @@ def update_edst_entry(callsign, data):
     return client.edst.data.find_one({'callsign': callsign}, {'_id': False})
 
 
-def get_amended_route(callsign, data):
-    keys = data.keys()
-    entry = get_edst_entry(callsign)
-    route = entry['route']
-    route_data = entry['route_data']
-    route_fixes = [e['name'] for e in route_data]
-    if 'direct' in keys and 'frd' in keys:
-        frd = f'{data["frd"]["waypoint_id"]}{str(int(data["frd"]["bearing"])).zfill(3)}{str(int(data["frd"]["distance"])).zfill(3)}'
-        direct_fix = data['direct']
+def get_amended_route(route: str = None,
+                      route_data: list = None,
+                      direct_fix: str = None,
+                      frd: dict = None):
+    if route and direct_fix and frd:
+        if route_data is None:
+            route_data = get_route_data(libs.lib.expand_route(route))
+        route_fixes = [e['name'] for e in route_data]
+        frd_str = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}'
         if direct_fix in route_fixes:
             index = route_fixes.index(direct_fix)
             route_data = route_data[index:]
-            for fix in reversed(route_fixes[:index+1]):
+            for fix in reversed(route_fixes[:index + 1]):
                 if fix in route:
-                    route = f'{frd}..{direct_fix}' + route[route.index(fix) + len(fix):]
+                    route = f'{frd_str}..{direct_fix}' + route[route.index(fix) + len(fix):]
                     break
-            frd_pos = libs.lib.get_frd_coordinates(float(data["frd"]["lat"]), float(data["frd"]["lon"]), float(data["frd"]["bearing"]), float(data["frd"]["distance"]))
+            frd_pos = libs.lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
+                                                   float(frd["distance"]))
             route_data = [{'name': frd, 'pos': frd_pos}] + route_data
             amend_data = {'route': route, 'route_data': route_data}
             return amend_data
         else:
             return None
-    elif 'route' in keys:
-        if 'route_data' in keys:
-            route_data = keys['route_data']
-        else:
-            expanded_route = libs.lib.expand_route(data['route'])
+    elif route:
+        if route_data is None:
+            expanded_route = libs.lib.expand_route(route)
             route_data = get_route_data(expanded_route)
-        route = data['route']
-        if 'frd' in keys:
-            frd = f'{data["frd"]["waypoint_id"]}{str(int(data["frd"]["bearing"])).zfill(3)}{str(int(data["frd"]["distance"])).zfill(3)}'
+        if frd:
+            frd = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}'
             route = f'{frd}..{route}'
         amend_data = {'route': libs.lib.format_route(route), 'route_data': route_data}
         return amend_data

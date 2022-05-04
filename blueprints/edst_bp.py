@@ -46,22 +46,23 @@ def _update_entry():
 @edst_blueprint.route('/trial/route', methods=['POST'])
 def _trial_route_amendment():
     post_data = request.get_json()
-    if not post_data or 'callsign' not in post_data.keys():
-        return jsonify(204)
-    callsign = post_data['callsign']
-    amend_data = libs.edst_lib.get_amended_route(callsign, post_data)
+    print(post_data)
+    amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
+                                                 route_data=post_data['route_data'],
+                                                 direct_fix=post_data['direct_fix'],
+                                                 frd=post_data['frd'])
     return jsonify(amend_data) if amend_data else jsonify(204)
 
 
 @edst_blueprint.route('/entry/amend/route', methods=['POST'])
 def _amend_route():
     post_data = request.get_json()
-    if not post_data or 'callsign' not in post_data.keys():
-        return jsonify(204)
-    callsign = post_data['callsign']
-    amend_data = libs.edst_lib.get_amended_route(callsign, post_data)
-    if amend_data:
-        libs.edst_lib.update_edst_entry(callsign, amend_data)
+    amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
+                                                 route_data=post_data['route_data'],
+                                                 direct_fix=post_data['direct_fix'],
+                                                 frd=post_data['frd'])
+    if amend_data and post_data['callsign']:
+        libs.edst_lib.update_edst_entry(post_data['callsign'], amend_data)
     return jsonify(amend_data) if amend_data else jsonify(204)
 
 
