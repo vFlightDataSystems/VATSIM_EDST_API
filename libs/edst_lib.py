@@ -187,7 +187,7 @@ def get_amended_route(route: str = None,
                     break
             frd_pos = libs.lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
                                                    float(frd["distance"]))
-            route_data = [{'name': frd, 'pos': frd_pos}] + route_data
+            route_data = [{'name': frd_str, 'pos': frd_pos}] + route_data
             amend_data = {'route': route, 'route_data': route_data}
             return amend_data
         else:
