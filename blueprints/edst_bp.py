@@ -61,7 +61,7 @@ def _amend_route():
     callsign = post_data['callsign']
     amend_data = libs.edst_lib.get_amended_route(callsign, post_data)
     if amend_data:
-        libs.edst_lib.update_edst_flightplan(callsign, amend_data)
+        libs.edst_lib.update_edst_entry(callsign, amend_data)
     return jsonify(amend_data) if amend_data else jsonify(204)
 
 
