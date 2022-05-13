@@ -46,7 +46,7 @@ def _trial_route_amendment():
     post_data = request.get_json()
     keys = post_data.keys()
     amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
-                                                 route_data=post_data['route_data'],
+                                                 route_data=post_data['route_data'] if 'route_data' in keys else None,
                                                  direct_fix=post_data['direct_fix'] if 'direct_fix' in keys else None,
                                                  frd=post_data['frd'] if 'frd' in keys else None,
                                                  dest=post_data['dest']) if 'dest' in keys else None
@@ -58,7 +58,7 @@ def _amend_route():
     post_data = defaultdict(request.get_json())
     keys = post_data.keys()
     amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
-                                                 route_data=post_data['route_data'],
+                                                 route_data=post_data['route_data'] if 'route_data' in keys else None,
                                                  direct_fix=post_data['direct_fix'] if 'direct_fix' in keys else None,
                                                  frd=post_data['frd'] if 'frd' in keys else None,
                                                  dest=post_data['dest']) if 'dest' in keys else None
