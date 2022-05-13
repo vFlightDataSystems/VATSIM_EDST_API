@@ -159,10 +159,10 @@ def get_edst_entry(callsign: str) -> Optional[dict]:
 
 def update_edst_entry(callsign: str, data: dict):
     client: MongoClient = g.mongo_edst_client
-    if 'route' in data.keys() and 'route_data' not in data.keys():
+    keys = data.keys()
+    if 'route' in keys and 'route_data' not in keys:
         data['route'] = libs.lib.format_route(data['route'])
-        expanded_route = set(data['route_fixes']) if 'route_fixes' in data.keys() \
-            else libs.lib.expand_route(data['route'])
+        expanded_route = libs.lib.expand_route(data['route'], [data['dest']] if 'dest' in keys else None)
         data['route_data'] = get_route_data(expanded_route)
     data['manual_update_time'] = datetime.utcnow().strftime(time_mask)
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
@@ -172,10 +172,11 @@ def update_edst_entry(callsign: str, data: dict):
 def get_amended_route(route: str = None,
                       route_data: list = None,
                       direct_fix: str = None,
-                      frd: dict = None):
-    if route and direct_fix and frd:
+                      frd: dict = None,
+                      dest: str = None):
+    if route and direct_fix:
         if route_data is None:
-            route_data = get_route_data(libs.lib.expand_route(route))
+            route_data = get_route_data(libs.lib.expand_route(route, [dest] if dest else None))
         route_fixes = [e['name'] for e in route_data]
         frd_str = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}'
         if direct_fix in route_fixes:
@@ -189,9 +190,10 @@ def get_amended_route(route: str = None,
                     else:
                         route = f'{frd_str}..{direct_fix}.{fix}' + route
                     break
-            frd_pos = libs.lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
-                                                   float(frd["distance"]))
-            route_data = [{'name': frd_str, 'pos': frd_pos}] + route_data
+            if frd:
+                frd_pos = libs.lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
+                                                       float(frd["distance"]))
+                route_data = [{'name': frd_str, 'pos': frd_pos}] + route_data
             amend_data = {'route': route, 'route_data': route_data}
             return amend_data
         else:

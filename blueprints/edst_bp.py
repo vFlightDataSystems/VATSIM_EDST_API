@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from flask import Blueprint, jsonify, request, g
 from pymongo import MongoClient
 
@@ -35,11 +37,7 @@ def _update_entry():
     if not post_data or 'callsign' not in post_data.keys():
         return jsonify(204)
     callsign = post_data['callsign']
-    data = {}
-    for key in EDST_KEYS:
-        if key in post_data.keys():
-            data[key] = post_data[key]
-    ret_data = libs.edst_lib.update_edst_entry(callsign, data)
+    ret_data = libs.edst_lib.update_edst_entry(callsign, post_data)
     return jsonify(ret_data)
 
 
@@ -50,17 +48,19 @@ def _trial_route_amendment():
     amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
                                                  route_data=post_data['route_data'],
                                                  direct_fix=post_data['direct_fix'],
-                                                 frd=post_data['frd'])
+                                                 frd=post_data['frd'],
+                                                 dest=post_data['dest'])
     return jsonify(amend_data) if amend_data else jsonify(204)
 
 
 @edst_blueprint.route('/entry/amend/route', methods=['POST'])
 def _amend_route():
-    post_data = request.get_json()
+    post_data = defaultdict(request.get_json())
     amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
                                                  route_data=post_data['route_data'],
                                                  direct_fix=post_data['direct_fix'],
-                                                 frd=post_data['frd'])
+                                                 frd=post_data['frd'],
+                                                 dest=post_data['dest'])
     if amend_data and post_data['callsign']:
         libs.edst_lib.update_edst_entry(post_data['callsign'], amend_data)
     return jsonify(amend_data) if amend_data else jsonify(204)
