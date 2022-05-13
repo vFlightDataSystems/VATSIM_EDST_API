@@ -43,7 +43,7 @@ def _update_entry():
 
 @edst_blueprint.route('/trial/route', methods=['POST'])
 def _trial_route_amendment():
-    post_data = request.get_json()
+    post_data = defaultdict(None, request.get_json())
     keys = post_data.keys()
     amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
                                                  route_data=post_data['route_data'] if 'route_data' in keys else None,
@@ -55,7 +55,7 @@ def _trial_route_amendment():
 
 @edst_blueprint.route('/entry/amend/route', methods=['POST'])
 def _amend_route():
-    post_data = defaultdict(request.get_json())
+    post_data = defaultdict(None, request.get_json())
     keys = post_data.keys()
     amend_data = libs.edst_lib.get_amended_route(route=post_data['route'],
                                                  route_data=post_data['route_data'] if 'route_data' in keys else None,
