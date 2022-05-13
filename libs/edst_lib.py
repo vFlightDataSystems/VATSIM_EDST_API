@@ -178,7 +178,8 @@ def get_amended_route(route: str = None,
         if route_data is None:
             route_data = get_route_data(libs.lib.expand_route(route, [dest] if dest else None))
         route_fixes = [e['name'] for e in route_data]
-        frd_str = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}'
+        frd_str = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}' \
+            if frd else ''
         if direct_fix in route_fixes:
             index = route_fixes.index(direct_fix)
             route_data = route_data[index:]
