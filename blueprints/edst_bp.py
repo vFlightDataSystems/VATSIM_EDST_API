@@ -49,7 +49,7 @@ def _trial_route_amendment():
                                                  route_data=post_data['route_data'] if 'route_data' in keys else None,
                                                  direct_fix=post_data['direct_fix'] if 'direct_fix' in keys else None,
                                                  frd=post_data['frd'] if 'frd' in keys else None,
-                                                 dest=post_data['dest']) if 'dest' in keys else None
+                                                 dest=post_data['dest'] if 'dest' in keys else None)
     return jsonify(amend_data) if amend_data else jsonify(204)
 
 
@@ -61,7 +61,7 @@ def _amend_route():
                                                  route_data=post_data['route_data'] if 'route_data' in keys else None,
                                                  direct_fix=post_data['direct_fix'] if 'direct_fix' in keys else None,
                                                  frd=post_data['frd'] if 'frd' in keys else None,
-                                                 dest=post_data['dest']) if 'dest' in keys else None
+                                                 dest=post_data['dest'] if 'dest' in keys else None)
     if amend_data and post_data['callsign']:
         libs.edst_lib.update_edst_entry(post_data['callsign'], amend_data)
     return jsonify(amend_data) if amend_data else jsonify(204)
