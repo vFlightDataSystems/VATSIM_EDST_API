@@ -2,8 +2,20 @@ from flask import Blueprint, request, jsonify
 
 import libs.lib as lib
 import libs.edst_lib as edst_lib
+import mongo_client
 
 route_analysis_blueprint = Blueprint('route', __name__)
+
+
+@route_analysis_blueprint.before_request
+def _get_mongo_clients():
+    mongo_client.get_edst_mongo_client()
+
+
+@route_analysis_blueprint.after_request
+def _close_mongo_clients(response):
+    mongo_client.close_edst_mongo_client()
+    return response
 
 
 @route_analysis_blueprint.route('/', methods=['POST'])
