@@ -216,7 +216,7 @@ def get_route_data(fixes: list) -> list:
 
     :rtype: list
     """
-    client: MongoClient = g.mongo_edst_client if g else mongo_client.reader_client
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     points = []
     for fix in fixes:
         try:
