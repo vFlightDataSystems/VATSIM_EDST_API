@@ -26,6 +26,11 @@ def _close_mongo_clients(response):
     return response
 
 
+@edst_blueprint.route('/airports/<artcc>')
+def _get_artcc_airports(artcc):
+    return jsonify(lib.get_airports_in_artcc(artcc))
+
+
 @edst_blueprint.route('/entry/get/<callsign>')
 def _get_entry(callsign):
     return jsonify(edst_lib.get_edst_entry(callsign))

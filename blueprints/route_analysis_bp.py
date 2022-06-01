@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 import libs.lib as lib
+import libs.edst_lib as edst_lib
 
 route_analysis_blueprint = Blueprint('route', __name__)
 
@@ -19,14 +20,14 @@ def _route_analysis():
     return jsonify(None)
 
 
-@route_analysis_blueprint.route('/get_fixes', methods=['POST'])
-def _get_route_fixes():
+@route_analysis_blueprint.route('/get_route_data', methods=['POST'])
+def _get_route_data():
     post_data = request.get_json()
     route = post_data['route']
     dep = post_data['dep']
     dest = post_data['dest']
     route = lib.clean_route(route, dep or '', dest or '')
-    return jsonify(lib.expand_route(route, airports=[dest, dep]))
+    return jsonify(edst_lib.get_route_data(lib.expand_route(route, airports=[dest, dep])))
 
 
 @route_analysis_blueprint.route('/format_route', methods=['POST'])
