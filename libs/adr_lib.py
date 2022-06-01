@@ -4,7 +4,7 @@ import re
 from flask import g
 from pymongo import MongoClient
 
-import libs.lib
+import libs.lib as lib
 import mongo_client
 from resources.Flightplan import Flightplan
 
@@ -16,7 +16,7 @@ def amend_adr(route: str, adr: dict) -> dict:
     :param adr: adr dictionary as it is returned from the database
     :return: dictionary containing: the adr upto tfix, rest of the route starting after the tfix, route groups for the adr
     """
-    route = libs.lib.format_route(route)
+    route = lib.format_route(route)
     adr_route = adr['route']
     # if adr matches initial route, there is nothing to do.
     if adr_route == route[:len(adr_route)]:
@@ -65,12 +65,12 @@ def amend_adr(route: str, adr: dict) -> dict:
 
 def get_adr(fp: Flightplan, departing_runways=None) -> list:
     # if route empty, do nothing, maybe implement crossing lines in the future
-    dep_info = libs.lib.get_airport_info(fp.departure)
+    dep_info = lib.get_airport_info(fp.departure)
     if not dep_info:
         return []
     dep_artcc = dep_info['artcc'].lower()
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    nat_list = set(libs.lib.get_nat_types(fp.aircraft_short) + ['NATALL'])
+    nat_list = set(lib.get_nat_types(fp.aircraft_short) + ['NATALL'])
     adr_list = client[dep_artcc].adr.find({"dep": fp.departure}, {'_id': False})
     dep_procedures = [
         p['procedure'] for p in
@@ -81,7 +81,7 @@ def get_adr(fp: Flightplan, departing_runways=None) -> list:
     ]
     alt = int(fp.altitude) * 100
     split_route = fp.route.split()
-    expanded_route = libs.lib.expand_route(libs.lib.format_route(fp.route), [fp.departure, fp.arrival])
+    expanded_route = lib.expand_route(lib.format_route(fp.route), [fp.departure, fp.arrival])
     available_adr = []
     for adr in adr_list:
         dp = adr['dp']

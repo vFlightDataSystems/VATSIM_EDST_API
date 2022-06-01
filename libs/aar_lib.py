@@ -4,7 +4,7 @@ from copy import copy
 from flask import g
 from pymongo import MongoClient
 
-import libs.lib
+import libs.lib as lib
 import mongo_client
 
 
@@ -63,14 +63,14 @@ def get_aar(edst_entry, requesting_artcc, route=None) -> list:
         return []
     aircraft = edst_entry['flightplan']['aircraft_short']
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    nat_list = set(libs.lib.get_nat_types(aircraft) + ['NATALL'])
+    nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
     aar_list = client.flightdata.aar.find(
         {"airports": edst_entry['dest'],
          "applicable_artcc": requesting_artcc.upper()}, {'_id': False})
     alt = int(edst_entry['altitude']) * 100
     if route is None:
         route = edst_entry['route']
-    expanded_route = libs.lib.expand_route(route, [edst_entry['dest']])
+    expanded_route = lib.expand_route(route, [edst_entry['dest']])
     available_aar = []
     for aar in aar_list:
         for tfix_details in aar['transition_fixes_details']:

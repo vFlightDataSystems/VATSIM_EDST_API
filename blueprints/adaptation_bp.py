@@ -4,7 +4,7 @@ from bson import json_util
 from flask import Blueprint, request, g, jsonify, Response
 from pymongo import MongoClient
 
-import libs.lib
+import libs.lib as lib
 from config import MONGO_URL
 from resources.AdaptationProfile import AdaptationProfile
 
@@ -28,7 +28,7 @@ def _update_profile():
 
     if profile.facility and profile.profile_name and \
             username and password:
-        artcc = libs.lib.get_airport_info(profile.facility)['artcc'].lower()
+        artcc = lib.get_airport_info(profile.facility)['artcc'].lower()
         client: MongoClient = get_client(username, password, artcc)
         client[artcc].profiles.update_one({'profile_name': profile.profile_name},
                                           {'$set': vars(profile)},
@@ -41,7 +41,7 @@ def _update_profile():
 
 @adaptation_blueprint.route('profile/get/<facility>')
 def _get_profiles(facility: str):
-    airport_data = libs.lib.get_airport_info(facility)
+    airport_data = lib.get_airport_info(facility)
     artcc = airport_data['artcc'].lower()
     client: MongoClient = g.mongo_reader_client
     profiles = list(client[artcc].profiles.find({'facility': facility}, {'_id': False}))

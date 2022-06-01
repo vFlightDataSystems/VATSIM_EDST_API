@@ -12,8 +12,8 @@ from pymongo import MongoClient
 from haversine import inverse_haversine, Unit
 
 import config
-import libs.adar_lib
-import libs.adr_lib
+import libs.adar_lib as adar_lib
+import libs.adr_lib as adr_lib
 import mongo_client
 from resources.Flightplan import Flightplan
 
@@ -63,7 +63,7 @@ def get_airport_info(airport: str) -> dict:
     return airport_data
 
 
-def format_route(route: str):
+def format_route(route: str, dep: str = None, dest: str = None):
     client = g.mongo_reader_client if g else mongo_client.reader_client
     route = re.sub(r'\.+', ' ', route).strip().split()
     new_route = ''
@@ -175,7 +175,7 @@ def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
         departing_runways = None
 
     if fp.departure and fp.route:
-        adar_list = [adar for adar in libs.adar_lib.get_adar(fp, departing_runways=departing_runways) if
+        adar_list = [adar for adar in adar_lib.get_adar(fp, departing_runways=departing_runways) if
                      adar['eligible']]
         adar_list = sorted(adar_list,
                            key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
@@ -184,10 +184,10 @@ def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
                 fp.amendment = f'{adar_list[0]["route"]}'
                 fp.amended_route = f'+{adar_list[0]["route"]}+'
         else:
-            adr_list = [adr for adr in libs.adr_lib.get_adr(fp, departing_runways=departing_runways) if
+            adr_list = [adr for adr in adr_lib.get_adr(fp, departing_runways=departing_runways) if
                         adr['eligible']]
             adr_list = sorted(adr_list, key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
-            adr_amendments = [libs.adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
+            adr_amendments = [adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
             if adr_amendments and not any([a['route'] == fp.route for a in adr_amendments]):
                 adr = adr_amendments[0]
                 if adr['adr_amendment']:
@@ -218,7 +218,8 @@ def assign_beacon(fp: Flightplan) -> Optional[str]:
 
 
 def get_frd_coordinates(lat: float, lon: float, bearing: float, distance: float):
-    inverse_haversine_coords = list(inverse_haversine((lat, lon), distance, (pi * bearing / 360 + pi) % 2*pi, unit=Unit.NAUTICAL_MILES))
+    inverse_haversine_coords = list(
+        inverse_haversine((lat, lon), distance, (pi * bearing / 360 + pi) % 2 * pi, unit=Unit.NAUTICAL_MILES))
     return list(reversed(inverse_haversine_coords))
 
 

@@ -1,4 +1,4 @@
-import libs.lib
+import libs.lib as lib
 
 
 class Flightplan:
@@ -17,7 +17,7 @@ class Flightplan:
         self.assigned_transponder = fp['assigned_transponder']
         self.revision_id = fp['revision_id']
 
-        self.route = libs.lib.clean_route(self.route, self.departure, self.arrival)
+        self.route = lib.clean_route(self.route, self.departure, self.arrival)
 
         alt = ''.join([c for c in self.altitude if c.isdigit()])
         self.altitude = alt if alt != self.altitude else int(self.altitude or 0) / 100

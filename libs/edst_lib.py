@@ -14,10 +14,10 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 
 import mongo_client
-import libs.lib
-import libs.aar_lib
-import libs.adr_lib
-import libs.adar_lib
+import libs.lib as lib
+import libs.aar_lib as aar_lib
+import libs.adr_lib as adr_lib
+import libs.adar_lib as adar_lib
 from resources.Flightplan import Flightplan
 
 CID_OVERFLOW_RANGE = list('CFNPTVWY')  # list(string.ascii_lowercase)
@@ -66,7 +66,7 @@ def update_edst_data():
     used_cid_list = [d['cid'] for d in edst_entries.values()]
     codes_in_use = [d['beacon'] for d in edst_entries.values()]
     prefroutes = defaultdict(None)
-    for vatsim_callsign, vatsim_fp in libs.lib.get_all_flightplans().items():
+    for vatsim_callsign, vatsim_fp in lib.get_all_flightplans().items():
         if not ((20 < float(vatsim_fp.lat) < 55) and (-135 < float(vatsim_fp.lon) < -40)):
             continue
         dep = vatsim_fp.departure
@@ -81,8 +81,8 @@ def update_edst_data():
                         or datetime.strptime(new_edst_entry['manual_update_time'],
                                              time_mask) > datetime.utcnow() - timedelta(minutes=1):
                     if vatsim_fp.route != new_edst_entry['flightplan']['route']:
-                        new_edst_entry['route'] = libs.lib.format_route(vatsim_fp.route)
-                        expanded_route = libs.lib.expand_route(new_edst_entry['route'], [dep, dest])
+                        new_edst_entry['route'] = lib.format_route(vatsim_fp.route)
+                        expanded_route = lib.expand_route(new_edst_entry['route'], [dep, dest])
                         new_edst_entry['route_data'] = get_route_data(expanded_route)
                     new_edst_entry['altitude'] = str(int(vatsim_fp.altitude)).zfill(3)
                 new_edst_entry['flightplan'] = vars(vatsim_fp)
@@ -109,8 +109,8 @@ def update_edst_data():
             equipment = (aircraft_faa[-1])[0] if len(aircraft_faa) > 1 else ''
         except IndexError:
             equipment = ''
-        # airways = libs.lib.get_airways_on_route(fp.route)
-        expanded_route = libs.lib.expand_route(libs.lib.format_route(vatsim_route), [dep, dest])
+        # airways = lib.get_airways_on_route(fp.route)
+        expanded_route = lib.expand_route(lib.format_route(vatsim_route), [dep, dest])
         route_key = f'{dep}_{dest}'
         # write formatted route and route_data for prefroutes into database
         if route_key not in prefroutes.keys():
@@ -119,23 +119,23 @@ def update_edst_data():
             cdr = list(reader_client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
             prd = list(reader_client.flightdata.faa_prd.find({'dep': local_dep, 'dest': local_dest}, {'_id': False}))
             for r in cdr:
-                r['route_data'] = get_route_data(libs.lib.expand_route(' '.join(r['route'].split('.')), [dep, dest]))
-                r['route'] = libs.lib.format_route(re.sub(rf'{dep}|{dest}', '', r['route']))
+                r['route_data'] = get_route_data(lib.expand_route(' '.join(r['route'].split('.')), [dep, dest]))
+                r['route'] = lib.format_route(re.sub(rf'{dep}|{dest}', '', r['route']))
             for r in prd:
-                r['route_data'] = get_route_data(libs.lib.expand_route(r['route'], [dep, dest]))
+                r['route_data'] = get_route_data(lib.expand_route(r['route'], [dep, dest]))
             prefroutes[route_key] = cdr + prd
-        adr = libs.adr_lib.get_adr(vatsim_fp)
+        adr = adr_lib.get_adr(vatsim_fp)
         for a in adr:
-            amendment = libs.adr_lib.amend_adr(vatsim_route, a)
+            amendment = adr_lib.amend_adr(vatsim_route, a)
             a['amendment'] = amendment
-        adar = libs.adar_lib.get_adar(vatsim_fp)
+        adar = adar_lib.get_adar(vatsim_fp)
         for a in adar:
             a['route_data'] = get_route_data(a['route_fixes'])
-            a['route'] = libs.lib.format_route(a['route'])
+            a['route'] = lib.format_route(a['route'])
         new_edst_entry = {'callsign': vatsim_callsign, 'type': vatsim_fp.aircraft_short, 'equipment': equipment,
                           'beacon': beacon, 'dep': dep,
                           'dep_info': dep_info, 'dest': dest, 'dest_info': dest_info,
-                          'route': libs.lib.format_route(vatsim_route),
+                          'route': lib.format_route(vatsim_route),
                           'route_data': get_route_data(expanded_route),
                           'altitude': str(int(vatsim_fp.altitude)).zfill(3),
                           'interim': None, 'hdg': None, 'spd': None, 'hold_fix': None, 'hold_hdg': None,
@@ -161,8 +161,8 @@ def update_edst_entry(callsign: str, data: dict):
     client: MongoClient = g.mongo_edst_client
     keys = data.keys()
     if 'route' in keys and 'route_data' not in keys:
-        data['route'] = libs.lib.format_route(data['route'])
-        expanded_route = libs.lib.expand_route(data['route'], [data['dest']] if 'dest' in keys else None)
+        data['route'] = lib.format_route(data['route'])
+        expanded_route = lib.expand_route(data['route'], [data['dest']] if 'dest' in keys else None)
         data['route_data'] = get_route_data(expanded_route)
     data['manual_update_time'] = datetime.utcnow().strftime(time_mask)
     client.edst.data.update_one({'callsign': callsign}, {'$set': data})
@@ -176,7 +176,7 @@ def get_amended_route(route: str = None,
                       dest: str = None):
     if route and direct_fix:
         if route_data is None:
-            route_data = get_route_data(libs.lib.expand_route(route, [dest] if dest else None))
+            route_data = get_route_data(lib.expand_route(route, [dest] if dest else None))
         route_fixes = [e['name'] for e in route_data]
         frd_str = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}' \
             if frd else ''
@@ -192,8 +192,8 @@ def get_amended_route(route: str = None,
                         route = f'{frd_str}..{direct_fix}.{fix}' + route
                     break
             if frd:
-                frd_pos = libs.lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
-                                                       float(frd["distance"]))
+                frd_pos = lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
+                                                  float(frd["distance"]))
                 route_data = [{'name': frd_str, 'pos': frd_pos}] + route_data
             amend_data = {'route': route, 'route_data': route_data}
             return amend_data
@@ -201,12 +201,12 @@ def get_amended_route(route: str = None,
             return None
     elif route:
         if route_data is None:
-            expanded_route = libs.lib.expand_route(route)
+            expanded_route = lib.expand_route(route)
             route_data = get_route_data(expanded_route)
         if frd:
             frd = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}'
             route = f'{frd}..{route}'
-        amend_data = {'route': libs.lib.format_route(route), 'route_data': route_data}
+        amend_data = {'route': lib.format_route(route), 'route_data': route_data}
         return amend_data
     return None
 
@@ -223,7 +223,7 @@ def get_route_data(fixes: list) -> list:
             if match := re.match(r'(\w+)(\d{3})(\d{3})', fix):
                 fix, bearing, distance = match.groups()
                 wpt = client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False})
-                frd_pos = libs.lib.get_frd_coordinates(wpt["lat"], wpt["lon"], bearing, distance)
+                frd_pos = lib.get_frd_coordinates(wpt["lat"], wpt["lon"], bearing, distance)
                 points.append({'name': fix, 'pos': frd_pos})
         except Exception as e:
             print(e)
@@ -275,7 +275,7 @@ def get_edst_aar(artcc: str, cid: str, route=None) -> list:
         return []
     if route is None:
         route = edst_entry['route']
-    aar_list = libs.aar_lib.get_aar(edst_entry, artcc, route=route)
+    aar_list = aar_lib.get_aar(edst_entry, artcc, route=route)
     for aar in aar_list:
-        aar['amendment'] = libs.aar_lib.amend_aar(route, aar)
+        aar['amendment'] = aar_lib.amend_aar(route, aar)
     return aar_list
