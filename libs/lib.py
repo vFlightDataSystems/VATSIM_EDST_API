@@ -21,9 +21,9 @@ cache = Cache()
 clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
 
 
-def get_airports_in_artcc(artcc) -> list:
+def get_airports_in_artcc(artcc: str) -> list:
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    airports = client.navdata.airports.find({"artcc": artcc}, {'_id': False})
+    airports = client.navdata.airports.find({"artcc": artcc.upper()}, {'_id': False})
     return list(filter(None, [a['icao'] for a in airports]))
 
 
