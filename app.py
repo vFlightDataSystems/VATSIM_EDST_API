@@ -2,7 +2,7 @@ import atexit
 import logging
 
 from flask import Flask
-from flask_cors import CORS
+# from flask_cors import CORS
 import threading
 
 import libs.edst_lib as edst_lib
@@ -31,7 +31,7 @@ POOL_TIME = 20
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    # CORS(app)
     register_extensions(app)
 
     def interrupt():
