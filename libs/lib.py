@@ -105,7 +105,7 @@ def expand_route(route: str, airports=None) -> list:
     if airports is None:
         airports = []
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    route = list(filter(None, route.split('.')))
+    route = list(filter(None, re.split(r'\s|\.', route)))
     new_route = []
     prev_segment = None
     for i, segment in enumerate(route):

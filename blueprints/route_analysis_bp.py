@@ -13,7 +13,7 @@ def _get_route_data():
     dep = post_data['dep']
     dest = post_data['dest']
     route = lib.clean_route(route, dep or '', dest or '')
-    return jsonify(edst_lib.get_route_data(lib.expand_route(route, airports=[dest, dep])))
+    return jsonify(edst_lib.get_route_data(lib.expand_route(route, [dest, dep])))
 
 
 @route_analysis_blueprint.route('/format_route', methods=['POST'])
