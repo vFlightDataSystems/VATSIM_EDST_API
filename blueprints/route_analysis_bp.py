@@ -6,20 +6,6 @@ import libs.edst_lib as edst_lib
 route_analysis_blueprint = Blueprint('route', __name__)
 
 
-@route_analysis_blueprint.route('/', methods=['POST'])
-def _route_analysis():
-    """
-
-    :return:
-    """
-    route: str = request.form.get('route')
-    route = lib.clean_route(route)
-    edt: str = request.form.get('edt')
-    aircraft: str = request.form.get('aircraft')
-
-    return jsonify(None)
-
-
 @route_analysis_blueprint.route('/get_route_data', methods=['POST'])
 def _get_route_data():
     post_data = request.get_json()
