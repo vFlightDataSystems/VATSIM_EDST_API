@@ -221,8 +221,8 @@ def get_route_data(fixes: list) -> list:
     for fix in fixes:
         try:
             if match := re.match(r'(\w+)(\d{3})(\d{3})', fix):
-                fix, bearing, distance = match.groups()
-                wpt = client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False})
+                fixname, bearing, distance = match.groups()
+                wpt = client.navdata.waypoints.find_one({'waypoint_id': fixname}, {'_id': False})
                 frd_pos = lib.get_frd_coordinates(wpt["lat"], wpt["lon"], bearing, distance)
                 points.append({'name': fix, 'pos': frd_pos})
         except Exception as e:
