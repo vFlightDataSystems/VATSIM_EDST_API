@@ -279,3 +279,72 @@ def get_edst_aar(artcc: str, cid: str, route=None) -> list:
     for aar in aar_list:
         aar['amendment'] = aar_lib.amend_aar(route, aar)
     return aar_list
+
+
+def get_edst_aar_generic(artcc: str, aircraft: str, dest: str, alt: int, route: str, ) -> list:
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
+    aar_list = client.flightdata.aar.find(
+        {"airports": dest,
+         "applicable_artcc": artcc.upper()}, {'_id': False})
+    alt = alt if alt >= 1000 else alt * 100
+    expanded_route = lib.expand_route(route, [dest])
+    available_aar = []
+    for aar in aar_list:
+        for tfix_details in aar['transition_fixes_details']:
+            tfix = tfix_details['tfix']
+            tfix_info = tfix_details['info']
+            is_procedure = False
+            if tfix in route:
+                is_procedure = route[route.index(tfix) + len(tfix)].isdigit() \
+                    if len(route) > route.index(tfix) + len(tfix) else False
+            if (('Explicit' in tfix_info and
+                 tfix in route and
+                 not is_procedure) or
+                    ('Implicit' in tfix_info and
+                     tfix in expanded_route) or
+                    (tfix in expanded_route and
+                     tfix_info == 'Prepend')):
+                aar['eligible'] = ((int(aar['min_alt']) <= alt <= int(aar['top_alt'])) or alt == 0) and \
+                                  any(set(aar['aircraft_class']).intersection(nat_list))
+                aar['amendment'] = aar_lib.amend_aar(route, aar)
+                available_aar.append(aar)
+                break
+    return available_aar
+
+
+def get_edst_adr_generic(artcc: str, dep: str, dest: str, aircraft: str, alt: int, route: str) -> list:
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
+    adr_list = client[artcc].adr.find({"dep": dep}, {'_id': False})
+    alt = alt if alt >= 1000 else alt * 100
+    split_route = route.split()
+    expanded_route = lib.expand_route(lib.format_route(route), [dep, dest])
+    available_adr = []
+    for adr in adr_list:
+        for tfix_details in adr['transition_fixes_details']:
+            if (('Explicit' in tfix_details['info'] and
+                 tfix_details['tfix'] in split_route) or
+                    ('Implicit' in tfix_details['info'] and
+                     tfix_details['tfix'] in expanded_route) or
+                    (tfix_details['tfix'] in expanded_route and
+                     tfix_details['info'] == 'Append')):
+                adr['eligible'] = ((int(adr['min_alt']) <= alt <= int(adr['top_alt'])) or alt == 0) and \
+                                  any(set(adr['aircraft_class']).intersection(nat_list))
+                adr['amendment'] = adr_lib.amend_adr(route, adr)
+                available_adr.append(adr)
+                break
+    return available_adr
+
+
+def get_edst_adar_generic(artcc: str, dep: str, dest: str, aircraft: str) -> list:
+    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    nat_list = lib.get_nat_types(aircraft) + ['NATALL']
+    adar_list = list(client[artcc].adar.find(
+        {'dep': dep, 'dest': dest},
+        {'_id': False}))
+    for adar in adar_list:
+        adar['eligible'] = any(set(adar['aircraft_class']).intersection(nat_list))
+        adar['route_data'] = get_route_data(adar['route_fixes'])
+        adar['route'] = lib.format_route(adar['route'])
+    return adar_list
