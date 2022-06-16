@@ -1,11 +1,10 @@
 import re
 from math import pi
-import requests
 from flask import g
 from pymongo import MongoClient
 from haversine import inverse_haversine, Unit
+import libs.helpers as helpers
 
-import config
 import mongo_client
 
 clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
@@ -58,7 +57,7 @@ def format_route(route: str):
     new_route = ''
     prev_is_fix = True
     for s in route:
-        is_fix = True
+        is_fix = helpers.matches_any_fix_format(s)
         if prev_is_fix and is_fix:
             new_route += f'..{s}'
         else:
@@ -86,7 +85,7 @@ def expand_route(route: str, airports=None) -> list:
     new_route = []
     prev_segment = None
     for i, segment in enumerate(route):
-        if segment[-1].isdigit() and (awy := get_airway(segment)):
+        if helpers.matches_airway_format(segment) and (awy := get_airway(segment)):
             if 0 < i < len(route):
                 try:
                     sorted_awy = sorted(awy, key=lambda e: int(e['sequence']))
@@ -102,7 +101,7 @@ def expand_route(route: str, airports=None) -> list:
                     new_route.append(segment)
             else:
                 new_route.append(segment)
-        elif segment[-1].isdigit() and \
+        elif helpers.matches_sid_star_format(segment) and \
                 (procedure := client.navdata.procedures.find_one(
                     {'procedure': segment.upper(), 'airport': {'$in': airports}}, {'_id': False})):
             if transitions := [r for r in procedure['routes'] if

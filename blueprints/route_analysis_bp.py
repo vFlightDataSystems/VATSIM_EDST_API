@@ -23,7 +23,7 @@ def _format_route():
     dep = post_data['dep']
     dest = post_data['dest']
     route = lib.clean_route(route, dep or '', dest or '')
-    return jsonify(lib.format_route(route, dest, dep))
+    return jsonify(lib.format_route(route))
 
 
 @route_analysis_blueprint.route('/aar/<artcc>', methods=['POST'])
