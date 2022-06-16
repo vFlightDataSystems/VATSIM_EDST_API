@@ -1,20 +1,12 @@
-import json.decoder
-import random
 import re
-from collections import defaultdict
 from math import pi
-from typing import Optional
-
 import requests
 from flask import g
 from pymongo import MongoClient
 from haversine import inverse_haversine, Unit
 
 import config
-import libs.adar_lib as adar_lib
-import libs.adr_lib as adr_lib
 import mongo_client
-from resources.Flightplan import Flightplan
 
 clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
 
