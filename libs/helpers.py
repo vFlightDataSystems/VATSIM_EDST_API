@@ -14,7 +14,7 @@ def matches_any_route_segment_format(s: str) -> bool:
 
 
 def matches_any_fix_format(s: str) -> bool:
-    return bool(re.match(r'^[A-Z0-9]+$', s)) or matches_any_custom_fix_format(s)
+    return bool(re.match(r'[A-Z]{2,5}|[A,Z]{2}\d{3}$', s)) or matches_any_custom_fix_format(s)
 
 
 def matches_frd_format(s: str) -> bool:

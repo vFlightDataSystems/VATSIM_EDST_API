@@ -57,7 +57,7 @@ def format_route(route: str):
     new_route = ''
     prev_is_fix = True
     for s in route:
-        is_fix = helpers.matches_any_fix_format(s)
+        is_fix = not helpers.matches_any_route_segment_format(s)
         if prev_is_fix and is_fix:
             new_route += f'..{s}'
         else:
