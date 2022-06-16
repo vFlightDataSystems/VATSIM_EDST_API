@@ -6,8 +6,6 @@ import requests
 from lxml import etree
 from flask import Blueprint, jsonify
 
-from libs.lib import get_all_connections
-
 weather_blueprint = Blueprint('weather', __name__)
 
 
@@ -28,23 +26,6 @@ def get_datis(airport):
         return data
     else:
         return json
-
-
-def get_vatsim_atis(airport: str) -> Optional[list]:
-    if (connections := get_all_connections()) is not None:
-        if 'atis' in connections.keys():
-            if atis_connection := next(
-                    filter(lambda x: x['callsign'] == f'{airport.upper()}_ATIS', connections['atis']), None):
-                if atis_connection['text_atis']:
-                    atis_str = ' '.join(atis_connection['text_atis'])
-                    return [{
-                        'atis_string': atis_str,
-                        'letter': atis_connection['atis_code'],
-                        'time': re.search(r'\d{4}Z', atis_str)[0],
-                        'type': 'vatsim_atis',
-                        'airport': airport
-                    }]
-    return None
 
 
 @weather_blueprint.route('/metar/airport/<airport>')
@@ -85,11 +66,3 @@ def _get_sigmets():
 @weather_blueprint.route('/datis/airport/<airport>')
 def _get_datis(airport):
     return jsonify(get_datis(airport))
-
-
-@weather_blueprint.route('/atis/vatsim/airport/<airport>')
-def _get_vatsim_atis(airport):
-    if (atis := get_vatsim_atis(airport)) is not None:
-        return jsonify(atis)
-    else:
-        return jsonify(get_datis(airport))
