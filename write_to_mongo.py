@@ -503,27 +503,27 @@ def write_all_artcc_ref_fixes():
 
 
 if __name__ == '__main__':
-    # write_navdata(nav_db_name)
-    # write_nattypes(NATTYPE_FILENAME, fd_db_name)
-    # with open(STARDP_FILENAME, 'r') as f:
-    #     stardp_data = json.load(f)
-    # dp_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'DP'}
-    # star_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'STAR'}
-    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-    #     path = Path(filepath)
-    #     if path.stem[:3] == 'adr':
-    #         write_adr(filepath, dp_data)
-    #     if path.stem[:4] == 'adar':
-    #         write_adar(filepath, dp_data, star_data)
-    # write_aar(AAR_FILENAME)
+    write_navdata(nav_db_name)
+    write_nattypes(NATTYPE_FILENAME, fd_db_name)
+    with open(STARDP_FILENAME, 'r') as f:
+        stardp_data = json.load(f)
+    dp_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'DP'}
+    star_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'STAR'}
+    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+        path = Path(filepath)
+        if path.stem[:3] == 'adr':
+            write_adr(filepath, dp_data)
+        if path.stem[:4] == 'adar':
+            write_adar(filepath, dp_data, star_data)
+    write_aar(AAR_FILENAME)
     # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
     # write_fav()
     # write_artcc_fav('zbw')
     # write_artcc_fav('zlc')
-    write_gpd_data('zbw')
-    write_gpd_data('zlc')
+    # write_gpd_data('zbw')
+    # write_gpd_data('zlc')
     # write_artcc_profiles('zlc')
     # write_all_artcc_ref_fixes()
     pass

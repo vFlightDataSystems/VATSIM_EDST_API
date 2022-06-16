@@ -31,21 +31,6 @@ def _get_artcc_airports(artcc):
     return jsonify(lib.get_airports_in_artcc(artcc))
 
 
-@edst_blueprint.route('/entry/get/<callsign>')
-def _get_entry(callsign):
-    return jsonify(edst_lib.get_edst_entry(callsign))
-
-
-@edst_blueprint.route('/entry/amend/generic', methods=['POST'])
-def _update_entry():
-    post_data = request.get_json()
-    if not post_data or 'callsign' not in post_data.keys():
-        return jsonify(204)
-    callsign = post_data['callsign']
-    ret_data = edst_lib.update_edst_entry(callsign, post_data)
-    return jsonify(ret_data)
-
-
 @edst_blueprint.route('/trial/route', methods=['POST'])
 def _trial_route_amendment():
     post_data = defaultdict(None, request.get_json())
@@ -56,26 +41,6 @@ def _trial_route_amendment():
                                             frd=post_data['frd'] if 'frd' in keys else None,
                                             dest=post_data['dest'] if 'dest' in keys else None)
     return jsonify(amend_data) if amend_data else jsonify(204)
-
-
-@edst_blueprint.route('/entry/amend/route', methods=['POST'])
-def _amend_route():
-    post_data = defaultdict(None, request.get_json())
-    keys = post_data.keys()
-    amend_data = edst_lib.get_amended_route(route=post_data['route'],
-                                            route_data=post_data['route_data'] if 'route_data' in keys else None,
-                                            direct_fix=post_data['direct_fix'] if 'direct_fix' in keys else None,
-                                            frd=post_data['frd'] if 'frd' in keys else None,
-                                            dest=post_data['dest'] if 'dest' in keys else None)
-    if amend_data and post_data['callsign']:
-        edst_lib.update_edst_entry(post_data['callsign'], amend_data)
-    return jsonify(amend_data) if amend_data else jsonify(204)
-
-
-@edst_blueprint.route('/all')
-def _get_all_edst():
-    data = edst_lib.get_edst_data()
-    return jsonify(data)
 
 
 @edst_blueprint.route('/fav/<artcc>/ctr')
@@ -94,25 +59,6 @@ def _get_app_fav(artcc):
 def _get_ctr_profiles(artcc):
     data = edst_lib.get_ctr_profiles(artcc)
     return jsonify(data)
-
-
-@edst_blueprint.route('/get_beacon/<artcc>')
-def _get_beacon(artcc):
-    client: MongoClient = g.mongo_reader_client
-    data = {d['callsign']: d for d in client.edst.data.find({}, {'_id': False})}
-    codes_in_use = [d['beacon'] for d in data.values()]
-    code = edst_lib.get_beacon(artcc, codes_in_use)
-    return jsonify({'beacon': code})
-
-
-@edst_blueprint.route('/aar/<artcc>/<cid>', methods=['GET', 'POST'])
-def _get_aar(artcc, cid):
-    post_data = request.get_json()
-    if post_data:
-        aar_data = edst_lib.get_edst_aar(artcc, cid, route=post_data['route'])
-    else:
-        aar_data = edst_lib.get_edst_aar(artcc, cid)
-    return jsonify(aar_data)
 
 
 @edst_blueprint.route('/gpd/<artcc>/sectors')

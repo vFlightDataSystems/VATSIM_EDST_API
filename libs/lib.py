@@ -7,7 +7,6 @@ from typing import Optional
 
 import requests
 from flask import g
-from flask_caching import Cache
 from pymongo import MongoClient
 from haversine import inverse_haversine, Unit
 
@@ -17,7 +16,6 @@ import libs.adr_lib as adr_lib
 import mongo_client
 from resources.Flightplan import Flightplan
 
-cache = Cache()
 clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
 
 
@@ -63,25 +61,12 @@ def get_airport_info(airport: str) -> dict:
     return airport_data
 
 
-def format_route(route: str, dep: str = None, dest: str = None):
-    client = g.mongo_reader_client if g else mongo_client.reader_client
+def format_route(route: str):
     route = re.sub(r'\.+', ' ', route).strip().split()
     new_route = ''
     prev_is_fix = True
     for s in route:
-        segment_data = client.navdata.waypoints.find_one({'waypoint_id': s}, {'_id': False})
-        is_fix = not (get_airway(s) or client.navdata.procedures.find_one({'procedure': s.upper()}, {'_id': False}))
-        if match := re.match(r'(\w+)(\d{3})(\d{3})', s):
-            fix, bearing, distance = match.groups()
-            if client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
-                is_fix = True
-        elif not segment_data and is_fix:
-            if s[-6:].isnumeric():
-                new_route += f'..{s}'
-            elif not new_route[-6:] == '.[XXX]':
-                new_route += '.[XXX]'
-            prev_is_fix = is_fix
-            continue
+        is_fix = True
         if prev_is_fix and is_fix:
             new_route += f'..{s}'
         else:
@@ -168,100 +153,7 @@ def get_all_adar(dep: str, dest: str) -> list:
         client[dep_artcc].adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
 
 
-def amend_flightplan(fp: Flightplan, active_runways=None) -> Flightplan:
-    try:
-        departing_runways = active_runways['departing'] if active_runways else None
-    except KeyError:
-        departing_runways = None
-
-    if fp.departure and fp.route:
-        adar_list = [adar for adar in adar_lib.get_adar(fp, departing_runways=departing_runways) if
-                     adar['eligible']]
-        adar_list = sorted(adar_list,
-                           key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
-        if adar_list and (any(filter(lambda x: x['ierr'], adar_list)) or not ('/L' in fp.aircraft_faa)):
-            if not any([a['route'] == fp.route for a in adar_list]):
-                fp.amendment = f'{adar_list[0]["route"]}'
-                fp.amended_route = f'+{adar_list[0]["route"]}+'
-        else:
-            adr_list = [adr for adr in adr_lib.get_adr(fp, departing_runways=departing_runways) if
-                        adr['eligible']]
-            adr_list = sorted(adr_list, key=lambda x: (bool(x['ierr']), int(x['order'])), reverse=True)
-            adr_amendments = [adr_lib.amend_adr(fp.route, adr) for adr in adr_list]
-            if adr_amendments and not any([a['route'] == fp.route for a in adr_amendments]):
-                adr = adr_amendments[0]
-                if adr['adr_amendment']:
-                    fp.amendment = f"{adr['adr_amendment']}"
-                    fp.amended_route = f"+{adr['adr_amendment']}+ {adr['route']}"
-    return fp
-
-
-def assign_beacon(fp: Flightplan) -> Optional[str]:
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    code = None
-    if fp and (dep_airport_info := client.navdata.airports.find_one({'icao': fp.departure}, {'_id': False})):
-        arr_airport_info = client.navdata.airports.find_one({'icao': fp.arrival}, {'_id': False})
-        dep_artcc = dep_airport_info['artcc']
-        arr_artcc = arr_airport_info['artcc'] if arr_airport_info else None
-        beacon_ranges = client.flightdata.beacons.find(
-            {'artcc': dep_artcc, 'priority': {'$regex': r'I[PST]?-?\d*', '$options': 'i'}}, {'_id': False}) \
-            if dep_artcc == arr_artcc else client.flightdata.beacons.find(
-            {'artcc': dep_artcc, 'priority': {'$regex': r'E[PST]?-?\d*', '$options': 'i'}}, {'_id': False})
-        codes_in_use = set(int(fp.assigned_transponder) for fp in get_all_flightplans().values())
-        for entry in sorted(beacon_ranges, key=lambda b: b['priority']):
-            start = int(entry['range_start'], 8)
-            end = int(entry['range_end'], 8)
-            if beacon_range := list(set(range(start, end)) - codes_in_use):
-                code = f'{random.choice(beacon_range):o}'.zfill(4)
-                break
-    return code
-
-
 def get_frd_coordinates(lat: float, lon: float, bearing: float, distance: float):
     inverse_haversine_coords = list(
         inverse_haversine((lat, lon), distance, (pi * bearing / 360 + pi) % 2 * pi, unit=Unit.NAUTICAL_MILES))
     return list(reversed(inverse_haversine_coords))
-
-
-@cache.cached(timeout=15, key_prefix='all_connections')
-def get_all_connections() -> Optional[dict]:
-    response = requests.get(config.VATSIM_DATA_URL)
-    try:
-        return response.json()
-    except json.decoder.JSONDecodeError:
-        return None
-
-
-@cache.cached(timeout=15, key_prefix='all_pilots')
-def get_all_pilots() -> list:
-    if (connections := get_all_connections()) is not None:
-        if 'pilots' in connections.keys():
-            return connections['pilots']
-    return []
-
-
-@cache.cached(timeout=15, key_prefix='all_flightplans')
-def get_all_flightplans() -> defaultdict:
-    flightplans = defaultdict(None)
-    for pilot in get_all_pilots():
-        if flightplan := pilot['flight_plan']:
-            fp = Flightplan(flightplan)
-            fp.lat = pilot['latitude']
-            fp.lon = pilot['longitude']
-            fp.heading = pilot['heading']
-            fp.ground_speed = pilot['groundspeed']
-            flightplans[pilot['callsign']] = fp
-    return flightplans
-
-
-# @cache.cached(timeout=15, key_prefix='all_amended_flightplans')
-# def get_all_amended_flightplans() -> defaultdict:
-#     flightplans = get_all_flightplans()
-#     for callsign, fp in flightplans.items():
-#         flightplans[callsign] = amend_flightplan(fp)
-#     return flightplans
-
-
-def get_flightplan(callsign: str) -> Flightplan:
-    flightplans = get_all_flightplans()
-    return flightplans[callsign] if callsign in flightplans.keys() else None

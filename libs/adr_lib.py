@@ -1,12 +1,7 @@
 import logging
 import re
 
-from flask import g
-from pymongo import MongoClient
-
 import libs.lib as lib
-import mongo_client
-from resources.Flightplan import Flightplan
 
 
 def amend_adr(route: str, adr: dict) -> dict:
@@ -61,42 +56,3 @@ def amend_adr(route: str, adr: dict) -> dict:
         'order': adr['order'],
         'route_groups': adr['route_groups']
     }
-
-
-def get_adr(fp: Flightplan, departing_runways=None) -> list:
-    # if route empty, do nothing, maybe implement crossing lines in the future
-    dep_info = lib.get_airport_info(fp.departure)
-    if not dep_info:
-        return []
-    dep_artcc = dep_info['artcc'].lower()
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    nat_list = set(lib.get_nat_types(fp.aircraft_short) + ['NATALL'])
-    adr_list = client[dep_artcc].adr.find({"dep": fp.departure}, {'_id': False})
-    dep_procedures = [
-        p['procedure'] for p in
-        client.navdata.procedures.find({'routes': {'$elemMatch': {'airports': fp.departure.upper()}}},
-                                       {'_id': False})
-        if departing_runways is None or any(
-            [re.match(rf'RW{rw}|ALL', r['transition']) for r in p['routes'] for rw in departing_runways])
-    ]
-    alt = int(fp.altitude) * 100
-    split_route = fp.route.split()
-    expanded_route = lib.expand_route(lib.format_route(fp.route), [fp.departure, fp.arrival])
-    available_adr = []
-    for adr in adr_list:
-        dp = adr['dp']
-        # check if adr is valid in current configuration
-        if departing_runways and dep_procedures and dp and not any(p == dp for p in dep_procedures):
-            continue
-        for tfix_details in adr['transition_fixes_details']:
-            if (('Explicit' in tfix_details['info'] and
-                 tfix_details['tfix'] in split_route) or
-                    ('Implicit' in tfix_details['info'] and
-                     tfix_details['tfix'] in expanded_route) or
-                    (tfix_details['tfix'] in expanded_route and
-                     tfix_details['info'] == 'Append')):
-                adr['eligible'] = ((int(adr['min_alt']) <= alt <= int(adr['top_alt'])) or alt == 0) and \
-                                  any(set(adr['aircraft_class']).intersection(nat_list))
-                available_adr.append(adr)
-                break
-    return available_adr
