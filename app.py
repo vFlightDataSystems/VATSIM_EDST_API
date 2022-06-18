@@ -11,6 +11,7 @@ import mongo_client
 
 PREFIX = '/api'
 
+
 def create_app():
     app = Flask(__name__)
     # CORS(app)
@@ -19,10 +20,7 @@ def create_app():
 
 
 def register_extensions(app):
-    # app.register_blueprint(adr_blueprint, url_prefix=f'{PREFIX}/adr')
-    # app.register_blueprint(adar_blueprint, url_prefix=f'{PREFIX}/adar')
     app.register_blueprint(prefroute_blueprint, url_prefix=f'{PREFIX}/prefroute')
-    # app.register_blueprint(faa_blueprint, url_prefix=f'{PREFIX}/faa')
     app.register_blueprint(navdata_blueprint, url_prefix=f'{PREFIX}/navdata')
     app.register_blueprint(weather_blueprint, url_prefix=f'{PREFIX}/weather')
     app.register_blueprint(edst_blueprint, url_prefix=f'{PREFIX}/edst')

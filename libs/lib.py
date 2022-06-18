@@ -1,13 +1,22 @@
 import re
 from math import pi
+
+import requests
 from flask import g
 from pymongo import MongoClient
 from haversine import inverse_haversine, Unit
 import libs.helpers as helpers
+import libs.cache as cache
 
 import mongo_client
 
 clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]{3,4}')
+
+
+@cache.time_cache(300)
+def get_aircraft_type_collection():
+    response = requests.get('https://data-api.virtualnas.net/api/aircraft-class-collections')
+    return response.json()
 
 
 def get_airports_in_artcc(artcc: str) -> list:
@@ -16,15 +25,20 @@ def get_airports_in_artcc(artcc: str) -> list:
     return list(filter(None, [a['icao'] for a in airports]))
 
 
+@cache.time_cache(300)
 def get_nat_types(aircraft: str) -> list:
     """
     get all valid NAT type entries for given aircraft
     :param aircraft: aircraft icao code
     :return: aircraft nat types
     """
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    nat_list = list(client.flightdata.nat_types.find({"aircraft_type": aircraft}, {'_id': False}))
-    return [e['nat'] for e in nat_list]
+    aircraft_type_collection = get_aircraft_type_collection()
+    aircraft_type_classes = []
+    for c in aircraft_type_collection:
+        for t in c['classes']:
+            if aircraft in t['aircraftTypes']:
+                aircraft_type_classes.append(t['name'])
+    return aircraft_type_classes
 
 
 def get_airway(airway: str) -> list:
@@ -71,7 +85,7 @@ def get_airways_on_route(route: str):
     return list(filter(None, [get_airway(s) for s in route.split()]))
 
 
-def expand_route(route: str, airports=None) -> list:
+def get_route_fixes(route: str, airports=None) -> list:
     """
 
     :param airports:
@@ -135,13 +149,6 @@ def get_faa_prd(dep: str, dest: str) -> list:
 def get_faa_cdr(dep: str, dest: str) -> list:
     client: MongoClient = g.mongo_reader_client
     return list(client.flightdata.faa_cdr.find({'dep': dep, 'dest': dest}, {'_id': False}))
-
-
-def get_all_adar(dep: str, dest: str) -> list:
-    dep_artcc = get_airport_info(dep)['artcc'].lower()
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
-    return list(
-        client[dep_artcc].adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))
 
 
 def get_frd_coordinates(lat: float, lon: float, bearing: float, distance: float):

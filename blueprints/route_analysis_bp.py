@@ -6,57 +6,52 @@ import libs.edst_lib as edst_lib
 route_analysis_blueprint = Blueprint('route', __name__)
 
 
-@route_analysis_blueprint.route('/get_route_data', methods=['POST'])
+@route_analysis_blueprint.route('/get_route_data', methods=['GET'])
 def _get_route_data():
-    post_data = request.get_json()
-    route = post_data['route']
-    dep = post_data['dep']
-    dest = post_data['dest']
+    route = request.args.get('route')
+    dep = request.args.get('dep')
+    dest = request.args.get('dest')
     route = lib.clean_route(route, dep or '', dest or '')
-    return jsonify(edst_lib.get_route_data(lib.expand_route(route, [dest, dep])))
+    return jsonify(edst_lib.get_route_data(lib.get_route_fixes(route, [dest, dep])))
 
 
-@route_analysis_blueprint.route('/format_route', methods=['POST'])
+@route_analysis_blueprint.route('/format_route', methods=['GET'])
 def _format_route():
-    post_data = request.get_json()
-    route = post_data['route']
-    dep = post_data['dep']
-    dest = post_data['dest']
+    route = request.args.get('route')
+    dep = request.args.get('dep')
+    dest = request.args.get('dest')
     route = lib.clean_route(route, dep or '', dest or '')
     return jsonify(lib.format_route(route))
 
 
-@route_analysis_blueprint.route('/aar/<artcc>', methods=['POST'])
+@route_analysis_blueprint.route('/aar/<artcc>', methods=['GET'])
 def _get_aar(artcc):
-    post_data = request.get_json()
-    route = post_data['route']
-    aircraft = post_data['aircraft']
-    dest = post_data['dest']
-    alt = int(post_data['alt'])
+    route = request.args.get('route')
+    aircraft = request.args.get('aircraft')
+    dest = request.args.get('dest')
+    alt = int(request.args.get('alt'))
 
-    aar_data = edst_lib.get_edst_aar_generic(artcc, aircraft, dest, alt, route)
+    aar_data = edst_lib.get_edst_aar(artcc, aircraft, dest, alt, route)
     return jsonify(aar_data)
 
 
-@route_analysis_blueprint.route('/adr/<artcc>', methods=['POST'])
+@route_analysis_blueprint.route('/adr/<artcc>', methods=['GET'])
 def _get_adr(artcc):
-    post_data = request.get_json()
-    route = post_data['route']
-    aircraft = post_data['aircraft']
-    dep = post_data['dep']
-    dest = post_data['dest']
-    alt = int(post_data['alt'])
+    route = request.args.get('route')
+    aircraft = request.args.get('aircraft')
+    dep = request.args.get('dep')
+    dest = request.args.get('dest')
+    alt = int(request.args.get('alt'))
 
-    adr_data = edst_lib.get_edst_adr_generic(artcc, dep, dest, aircraft, alt, route)
+    adr_data = edst_lib.get_edst_adr(artcc, dep, dest, aircraft, alt, route)
     return jsonify(adr_data)
 
 
-@route_analysis_blueprint.route('/adar/<artcc>', methods=['POST'])
+@route_analysis_blueprint.route('/adar/<artcc>', methods=['GET'])
 def _get_adar(artcc):
-    post_data = request.get_json()
-    aircraft = post_data['aircraft']
-    dep = post_data['dep']
-    dest = post_data['dest']
+    aircraft = request.args.get('aircraft')
+    dep = request.args.get('dep')
+    dest = request.args.get('dest')
 
-    adar_data = edst_lib.get_edst_adar_generic(artcc, dep, dest, aircraft)
+    adar_data = edst_lib.get_edst_adar(artcc, dep, dest, aircraft)
     return jsonify(adar_data)
