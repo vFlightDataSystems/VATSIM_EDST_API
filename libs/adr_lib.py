@@ -46,6 +46,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                 triggered_tfix = tfix
                 info = tfix['type']
                 if info == 'Append':
+                    adr_route = adr_route + fix
                     break
                 elif info == 'Explicit':
                     adr_route = adr_route[:adr_route.index(fix) + len(fix)]
@@ -57,8 +58,9 @@ def amend_adr(route: str, adr: dict) -> dict:
     return {
         'amendment': adr_route,
         'triggeredFix': triggered_tfix['fix'],
-        'truncatedRoute': truncate_route(route, route_fixes, triggered_tfix['fix']),
         'eligible': adr['eligible'],
+        'rnavRequired': adr['rnavRequired'],
+        'truncatedRoute': truncate_route(route, route_fixes, triggered_tfix['fix']),
         'order': adr['order'],
         'routeGroups': adr['routeGroups']
     } if triggered_tfix else None

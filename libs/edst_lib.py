@@ -114,7 +114,9 @@ def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> 
             if fix in route_fixes:
                 aar['eligible'] = ((int(aar['minimumAltitude']) <= alt <= int(aar['topAltitude'])) or alt == 0) and \
                                   any(set(aar['aircraftClasses']).intersection(nat_list))
-                available_aar.append(aar_lib.amend_aar(route, aar))
+                amended_aar = aar_lib.amend_aar(route, aar)
+                amended_aar['destination'] = dest
+                available_aar.append(amended_aar)
                 break
     return available_aar
 
@@ -130,7 +132,9 @@ def get_edst_adr(artcc: str, dep: str, dest: str, aircraft: str, alt: int, route
             if tfix['fix'] in route_fixes:
                 adr['eligible'] = ((int(adr['minimumAltitude']) <= alt <= int(adr['topAltitude'])) or alt == 0) and \
                                   any(set(adr['aircraftClasses']).intersection(nat_list))
-                available_adr.append(adr_lib.amend_adr(route, adr))
+                amended_adr = adr_lib.amend_adr(route, adr)
+                amended_adr['departure'] = dep
+                available_adr.append(amended_adr)
                 break
     return available_adr
 
@@ -138,7 +142,14 @@ def get_edst_adr(artcc: str, dep: str, dest: str, aircraft: str, alt: int, route
 def get_edst_adar(artcc: str, dep: str, dest: str, aircraft: str) -> list:
     nat_list = lib.get_nat_types(aircraft) + ['NATALL']
     adar_list = get_artcc_adar(artcc, dep, dest)
+    ret_list = []
     for adar in adar_list:
-        adar['eligible'] = any(set(adar['aircraftClasses']).intersection(nat_list))
-        adar['route'] = lib.format_route(adar['route'])
-    return adar_list
+        ret_list.append({
+            'departure': dep,
+            'destination': dest,
+            'rnavRequired': adar['rnavRequired'],
+            'eligible': any(set(adar['aircraftClasses']).intersection(nat_list)),
+            'route': lib.format_route(adar['route']),
+        })
+
+    return ret_list
