@@ -1,11 +1,9 @@
-import logging
-import re
-
 import requests
-
 import libs.lib as lib
+import libs.cache as cache
 
 
+@cache.time_cache(300)
 def get_artcc_adr(artcc: str, airport: str = ''):
     response = requests.get(
         f'https://data-api.virtualnas.net/api/pdrs?artccId={artcc.upper()}&airportId={airport.upper()}')

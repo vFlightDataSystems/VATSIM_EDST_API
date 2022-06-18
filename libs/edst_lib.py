@@ -9,9 +9,11 @@ import mongo_client
 import libs.lib as lib
 import libs.aar_lib as aar_lib
 import libs.adr_lib as adr_lib
+import libs.cache as cache
 
 
-def get_adar_artcc(artcc: str, dep: str = '', dest: str = ''):
+@cache.time_cache(300)
+def get_artcc_adar(artcc: str, dep: str = '', dest: str = ''):
     response = requests.get(
         f'https://data-api.virtualnas.net/api/pdars?artccId={artcc.upper()}'
         f'&departureAirportId={dep.upper()}&destinationAirportId={dest.upper()}')
@@ -137,7 +139,7 @@ def get_edst_adr(artcc: str, dep: str, dest: str, aircraft: str, alt: int, route
 
 def get_edst_adar(artcc: str, dep: str, dest: str, aircraft: str) -> list:
     nat_list = lib.get_nat_types(aircraft) + ['NATALL']
-    adar_list = get_adar_artcc(artcc, dep, dest)
+    adar_list = get_artcc_adar(artcc, dep, dest)
     for adar in adar_list:
         adar['eligible'] = any(set(adar['aircraftClasses']).intersection(nat_list))
         adar['route'] = lib.format_route(adar['route'])

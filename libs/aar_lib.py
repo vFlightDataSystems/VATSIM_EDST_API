@@ -1,7 +1,9 @@
 import requests
 import libs.lib as lib
+import libs.cache as cache
 
 
+@cache.time_cache(300)
 def get_artcc_aar(artcc: str, airport: str = ''):
     response = requests.get(
         f'https://data-api.virtualnas.net/api/pars?artccId={artcc.upper()}&airportId={airport.upper()}')
