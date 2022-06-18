@@ -57,10 +57,10 @@ def amend_adr(route: str, adr: dict) -> dict:
                 break
 
     return {
-        'adr_amendment': adr_route,
+        'adrAmendment': adr_route,
         'tfix': triggered_tfix['fix'],
         'route': route,
         'eligible': adr['eligible'],
         'order': adr['order'],
-        'route_groups': adr['route_groups']
+        'routeGroups': adr['routeGroups']
     } if triggered_tfix else None
