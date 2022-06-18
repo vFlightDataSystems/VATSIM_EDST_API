@@ -52,7 +52,7 @@ def amend_aar(route: str, aar: dict) -> dict:
         'aar_amendment': aar_route,
         'tfix': triggered_tfix['fix'],
         'eligible': aar['eligible'],
-        'route': truncate_route(route, route_fixes, triggered_tfix),
+        'route': truncate_route(route, route_fixes, triggered_tfix['fix']),
         'order': aar['order'],
         'route_groups': aar['route_groups']
     } if triggered_tfix else None

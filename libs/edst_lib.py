@@ -100,7 +100,7 @@ def get_route_data(fixes: list) -> list:
     return points
 
 
-def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str, ) -> list:
+def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> list:
     nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
     aar_list = aar_lib.get_artcc_aar(artcc, dest)
     alt = alt if alt >= 1000 else alt * 100
