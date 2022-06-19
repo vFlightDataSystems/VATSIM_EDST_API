@@ -115,8 +115,9 @@ def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> 
                 aar['eligible'] = ((int(aar['minimumAltitude']) <= alt <= int(aar['topAltitude'])) or alt == 0) and \
                                   any(set(aar['aircraftClasses']).intersection(nat_list))
                 amended_aar = aar_lib.amend_aar(route, aar)
-                amended_aar['destination'] = dest
-                available_aar.append(amended_aar)
+                if amended_aar:
+                    amended_aar['destination'] = dest
+                    available_aar.append(amended_aar)
                 break
     return available_aar
 
@@ -133,8 +134,9 @@ def get_edst_adr(artcc: str, dep: str, dest: str, aircraft: str, alt: int, route
                 adr['eligible'] = ((int(adr['minimumAltitude']) <= alt <= int(adr['topAltitude'])) or alt == 0) and \
                                   any(set(adr['aircraftClasses']).intersection(nat_list))
                 amended_adr = adr_lib.amend_adr(route, adr)
-                amended_adr['departure'] = dep
-                available_adr.append(amended_adr)
+                if amended_adr:
+                    amended_adr['departure'] = dep
+                    available_adr.append(amended_adr)
                 break
     return available_adr
 
