@@ -12,7 +12,7 @@ def _get_route_data():
     dep = request.args.get('dep')
     dest = request.args.get('dest')
     route = lib.clean_route(route, dep or '', dest or '')
-    return jsonify(edst_lib.get_route_data(lib.get_route_fixes(route, [dest, dep])))
+    return jsonify(edst_lib.get_route_data(lib.get_route_fixes(route, [dep], dest)))
 
 
 @route_analysis_blueprint.route('/format_route', methods=['GET'])
@@ -40,10 +40,9 @@ def _get_adr(artcc):
     route = request.args.get('route')
     aircraft = request.args.get('aircraft')
     dep = request.args.get('dep')
-    dest = request.args.get('dest')
     alt = int(request.args.get('alt'))
 
-    adr_data = edst_lib.get_edst_adr(artcc, dep, dest, aircraft, alt, route)
+    adr_data = edst_lib.get_edst_adr(artcc, dep, aircraft, alt, route)
     return jsonify(adr_data)
 
 

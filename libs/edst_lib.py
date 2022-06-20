@@ -38,48 +38,6 @@ def get_ctr_profiles(artcc):
     return profiles
 
 
-def get_amended_route(route: str = None,
-                      route_data: list = None,
-                      direct_fix: str = None,
-                      frd: dict = None,
-                      dest: str = None):
-    if route and direct_fix:
-        if route_data is None:
-            route_data = get_route_data(lib.get_route_fixes(route, [dest] if dest else None))
-        route_fixes = [e['name'] for e in route_data]
-        frd_str = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}' \
-            if frd else ''
-        if direct_fix in route_fixes:
-            index = route_fixes.index(direct_fix)
-            route_data = route_data[index:]
-            for fix in reversed(route_fixes[:index + 1]):
-                if fix in route:
-                    route = route[route.index(fix) + len(fix):]
-                    if not route[0].isdigit():
-                        route = f'{frd_str}..{direct_fix}' + route
-                    else:
-                        route = f'{frd_str}..{direct_fix}.{fix}' + route
-                    break
-            if frd:
-                frd_pos = lib.get_frd_coordinates(float(frd["lat"]), float(frd["lon"]), float(frd["bearing"]),
-                                                  float(frd["distance"]))
-                route_data = [{'name': frd_str, 'pos': frd_pos}] + route_data
-            amend_data = {'route': route, 'route_data': route_data}
-            return amend_data
-        else:
-            return None
-    elif route:
-        if route_data is None:
-            expanded_route = lib.get_route_fixes(route)
-            route_data = get_route_data(expanded_route)
-        if frd:
-            frd = f'{frd["waypoint_id"]}{str(int(frd["bearing"])).zfill(3)}{str(int(frd["distance"])).zfill(3)}'
-            route = f'{frd}..{route}'
-        amend_data = {'route': lib.format_route(route), 'route_data': route_data}
-        return amend_data
-    return None
-
-
 def get_route_data(fixes: list) -> list:
     """
 
@@ -99,6 +57,8 @@ def get_route_data(fixes: list) -> list:
             logging.Logger(str(e))
         if fix_data := client.navdata.waypoints.find_one({'waypoint_id': fix}, {'_id': False}):
             points.append({'name': fix, 'pos': (float(fix_data['lon']), float(fix_data['lat']))})
+        elif apt_data := client.navdata.airports.find_one({'icao': fix.upper()}, {'_id': False}):
+            points.append({'name': apt_data['icao'], 'pos': (float(apt_data['lon']), float(apt_data['lat']))})
     return points
 
 
@@ -122,11 +82,11 @@ def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> 
     return available_aar
 
 
-def get_edst_adr(artcc: str, dep: str, dest: str, aircraft: str, alt: int, route: str) -> list:
+def get_edst_adr(artcc: str, dep: str, aircraft: str, alt: int, route: str) -> list:
     nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
     adr_list = adr_lib.get_artcc_adr(artcc, dep)
     alt = alt if alt >= 1000 else alt * 100
-    route_fixes = lib.get_route_fixes(lib.format_route(route), [dep, dest])
+    route_fixes = lib.get_route_fixes(lib.format_route(route), [dep])
     available_adr = []
     for adr in adr_list:
         for tfix in adr['transitionFixesDetails']:

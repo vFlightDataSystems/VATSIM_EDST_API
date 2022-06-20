@@ -31,18 +31,6 @@ def _get_artcc_airports(artcc):
     return jsonify(lib.get_airports_in_artcc(artcc))
 
 
-@edst_blueprint.route('/trial/route', methods=['POST'])
-def _trial_route_amendment():
-    post_data = defaultdict(None, request.get_json())
-    keys = post_data.keys()
-    amend_data = edst_lib.get_amended_route(route=post_data['route'],
-                                            route_data=post_data['route_data'] if 'route_data' in keys else None,
-                                            direct_fix=post_data['direct_fix'] if 'direct_fix' in keys else None,
-                                            frd=post_data['frd'] if 'frd' in keys else None,
-                                            dest=post_data['dest'] if 'dest' in keys else None)
-    return jsonify(amend_data) if amend_data else jsonify(204)
-
-
 @edst_blueprint.route('/fav/<artcc>/ctr')
 def _get_ctr_fav(artcc):
     data = edst_lib.get_ctr_fav_data(artcc)

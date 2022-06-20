@@ -85,15 +85,18 @@ def get_airways_on_route(route: str):
     return list(filter(None, [get_airway(s) for s in route.split()]))
 
 
-def get_route_fixes(route: str, airports=None) -> list:
+def get_route_fixes(route: str, airports: list = None, dest: str = None) -> list:
     """
 
     :param airports:
+    :param dest: destination airport
     :param route:
     :return:
     """
     if airports is None:
         airports = []
+    if dest and dest not in airports:
+        airports.append(dest)
     client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
     route = list(filter(None, re.split(r'\s|\.', route)))
     new_route = []
@@ -128,6 +131,8 @@ def get_route_fixes(route: str, airports=None) -> list:
         else:
             new_route.append(segment)
         prev_segment = segment
+    if dest:
+        new_route.append(dest)
     # remove duplicates
     return list(dict.fromkeys(new_route))
 
