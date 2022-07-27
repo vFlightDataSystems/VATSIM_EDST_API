@@ -140,7 +140,7 @@ def get_route_fixes(route: str, airports: list = None, dest: str = None) -> list
 def clean_route(route, dep='', dest=''):
     if route:
         route = clean_route_pattern.sub(' ', route)
-        route = re.sub(fr'^{dep}\S*|{dest}\S*$', "", route).strip()
+        route = re.sub(fr'^\s*{dep}|{dest}\s*$', "", route)
     return route.strip()
 
 
