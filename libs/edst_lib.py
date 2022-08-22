@@ -65,7 +65,6 @@ def get_route_data(fixes: list) -> list:
 def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> list:
     nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
     aar_list = aar_lib.get_artcc_aar(artcc, dest)
-    alt = alt if alt >= 1000 else alt * 100
     route_fixes = lib.get_route_fixes(route, [dest])
     available_aar = []
     for aar in aar_list:
@@ -85,7 +84,6 @@ def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> 
 def get_edst_adr(artcc: str, dep: str, aircraft: str, alt: int, route: str) -> list:
     nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
     adr_list = adr_lib.get_artcc_adr(artcc, dep)
-    alt = alt if alt >= 1000 else alt * 100
     route_fixes = lib.get_route_fixes(lib.format_route(route), [dep])
     available_adr = []
     for adr in adr_list:

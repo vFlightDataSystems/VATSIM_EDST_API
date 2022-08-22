@@ -28,8 +28,12 @@ def _format_route():
 def _get_aar(artcc):
     route = request.args.get('route')
     aircraft = request.args.get('aircraft')
-    dest = request.args.get('dest')
-    alt = int(request.args.get('alt'))
+    dest = request.args.get('destination')
+    alt = request.args.get('altitude')
+    try:
+        alt = int(alt)
+    except TypeError:
+        alt = 0
 
     aar_data = edst_lib.get_edst_aar(artcc, aircraft, dest, alt, route)
     return jsonify(aar_data)
@@ -39,8 +43,12 @@ def _get_aar(artcc):
 def _get_adr(artcc):
     route = request.args.get('route')
     aircraft = request.args.get('aircraft')
-    dep = request.args.get('dep')
-    alt = int(request.args.get('alt'))
+    dep = request.args.get('departure')
+    alt = request.args.get('altitude')
+    try:
+        alt = int(alt)
+    except TypeError:
+        alt = 0
 
     adr_data = edst_lib.get_edst_adr(artcc, dep, aircraft, alt, route)
     return jsonify(adr_data)
@@ -49,8 +57,8 @@ def _get_adr(artcc):
 @route_analysis_blueprint.route('/adar/<artcc>', methods=['GET'])
 def _get_adar(artcc):
     aircraft = request.args.get('aircraft')
-    dep = request.args.get('dep')
-    dest = request.args.get('dest')
+    dep = request.args.get('departure')
+    dest = request.args.get('destination')
 
     adar_data = edst_lib.get_edst_adar(artcc, dep, dest, aircraft)
     return jsonify(adar_data)
