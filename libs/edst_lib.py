@@ -15,7 +15,7 @@ import libs.cache as cache
 @cache.time_cache(300)
 def get_artcc_adar(artcc: str, dep: str = '', dest: str = ''):
     response = requests.get(
-        f'https://data-api.virtualnas.net/api/pdars?artccId={artcc.upper()}'
+        f'https://data-api.virtualnas.net/api/adapted-routes?artccId={artcc.upper()}&type=DepartureArrival'
         f'&departureAirportId={dep.upper()}&destinationAirportId={dest.upper()}')
     return response.json()
 
