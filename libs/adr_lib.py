@@ -38,7 +38,7 @@ def amend_adr(route: str, adr: dict) -> dict:
     if adr_route == route[:len(adr_route)]:
         adr_route = ''
     else:
-        tfixes = adr['transitionFixesDetails']
+        tfixes = adr['transitionFixes']
         for tfix in reversed(tfixes):
             fix = tfix['fix']
             # find farthest tfix which triggered the ADR
@@ -51,7 +51,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                 elif info == 'Explicit':
                     adr_route = adr_route[:adr_route.index(fix) + len(fix)]
                 elif info == 'Implicit':
-                    implicit_segment = tfix['implicitSegmentName']
+                    implicit_segment = tfix['implicitSegment']
                     adr_route = adr_route[:adr_route.index(implicit_segment) + len(implicit_segment)] + f'.{fix}'
                 break
 

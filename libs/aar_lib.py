@@ -33,7 +33,7 @@ def amend_aar(route: str, aar: dict) -> dict:
     aar_route = aar['route']
     route_fixes = lib.get_route_fixes(route, aar['airportIds'])
     triggered_tfix = None
-    tfixes = aar['transitionFixesDetails']
+    tfixes = aar['transitionFixes']
     for tfix in tfixes:
         fix = tfix['fix']
         # find first tfix which triggered the AAR
@@ -43,7 +43,7 @@ def amend_aar(route: str, aar: dict) -> dict:
             if info == 'Explicit':
                 aar_route = aar_route[aar_route.index(fix):]
             elif info == 'Implicit':
-                implicit_segment = tfix['implicitSegmentName']
+                implicit_segment = tfix['implicitSegment']
                 index = aar_route.index(implicit_segment)
                 if index:
                     aar_route = f'{fix}.' + aar_route[index:]
