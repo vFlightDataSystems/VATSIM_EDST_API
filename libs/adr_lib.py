@@ -32,7 +32,7 @@ def amend_adr(route: str, adr: dict) -> dict:
     """
     adr_route = adr['route']
     route = lib.format_route(route)
-    route_fixes = lib.get_route_fixes(route, adr['airportIds'])
+    route_fixes = lib.get_route_fixes(route, adr['departureAirportIds'])
     triggered_tfix = None
     # if adr matches initial route, there is nothing to do.
     if adr_route == route[:len(adr_route)]:

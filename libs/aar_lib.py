@@ -31,7 +31,7 @@ def amend_aar(route: str, aar: dict) -> dict:
     :return:
     """
     aar_route = aar['route']
-    route_fixes = lib.get_route_fixes(route, aar['airportIds'])
+    route_fixes = lib.get_route_fixes(route, aar['destinationAirportIds'])
     triggered_tfix = None
     tfixes = aar['transitionFixes']
     for tfix in tfixes:
