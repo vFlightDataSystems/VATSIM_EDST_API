@@ -1,8 +1,10 @@
 import csv
 import re
 import json
-import uuid
 from collections import defaultdict
+from io import BytesIO
+from urllib import request
+from zipfile import ZipFile
 
 from dms2dec.dms_convert import dms2dec
 
@@ -15,7 +17,8 @@ APTDATA_FILENAME = NASR_DIR + '/APT.txt'
 PREFROUTES_FILENAME = NASR_DIR + '/PFR.txt'
 STARDP_FILENAME = NASR_DIR + '/STARDP.txt'
 AWY_FILENAME = NASR_DIR + '/AWY.txt'
-AIRCRAFT_FILENAME = 'zla_data/aircraft.json'
+ATS_FILENAME = NASR_DIR + '/ATS.txt'
+CDR_FILENAME = NASR_DIR + '/CDR.txt'
 
 cifp_rwy_regex = re.compile(r'^SUSAP (\w{3,4})\s?K\d\wRW(\d{1,2}[LCR]?)')
 cifp_procedure_rwy_regex = re.compile(r'^SUSAP (\w{3,4})\s?K\d\w(\w{3,5}\d)\s{0,2}\S(?:RW)?(\d{2}[LCRB]?|ALL\s)')
@@ -31,20 +34,12 @@ type_altitudes = {
     'NAR': [0, 99000]
 }
 
-with open('faa_ac.json', 'r') as f:
-    faa_aircraft_description = json.load(f)
-with open('faa_alt.json', 'r') as f:
-    faa_altitude_description = json.load(f)
 
-
-def parse_acdata():
-    rows = []
-    with open(AIRCRAFT_FILENAME, 'r') as f:
-        data = json.load(f)
-        for e in data['types']:
-            e['id'] = uuid.uuid4()
-            rows.append(e)
-    return rows
+def download_nasr_data(release_date):
+    filename = f'28DaySubscription_Effective_{release_date}.zip'
+    url = request.urlopen(f'https://nfdc.faa.gov/webContent/28DaySub/{filename}')
+    with ZipFile(BytesIO(url.read())) as zip_file:
+        zip_file.extractall('NASR')
 
 
 def write_acdata(rows):
@@ -60,21 +55,23 @@ def parse_navaid_data():
     with open(NAVDATA_FILENAME, 'r') as f:
         for line in f.readlines():
             if line[:4] == 'NAV1':
-                lat = dms2dec(line[371:385].strip())
-                lon = dms2dec(line[396:410].strip())
                 nav_type = line[8:28].strip()
-                nav_id = line[4:8].strip()
-                name = line[42:72].strip()
-                if nav_type != 'VOT':
-                    nid = uuid.uuid4()
+                if nav_type != 'VOT' and nav_type != 'FAN MARKER':
+                    lat = dms2dec(line[371:385].strip())
+                    lon = dms2dec(line[396:410].strip())
+                    nav_id = line[4:8].strip()
+                    name = line[42:72].strip()
+                    artcc_high = line[303:307].strip()
+                    artcc_low = line[337:341].strip()
                     rows.append(
-                        {'id': nid, 'navaid_id': nav_id, 'type': nav_type, 'name': name, 'lat': lat, 'lon': lon})
+                        {'navaid_id': nav_id, 'type': nav_type, 'name': name, 'lat': lat, 'lon': lon,
+                         'artcc_low': artcc_low, 'artcc_high': artcc_high})
     return rows
 
 
 def write_navaid_data(rows):
     with open('out/navaid_data.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'navaid_id', 'type', 'name', 'lat', 'lon'])
+        writer = csv.DictWriter(f, fieldnames=['navaid_id', 'type', 'name', 'lat', 'lon', 'artcc_low', 'artcc_high'])
         writer.writeheader()
         writer.writerows(rows)
 
@@ -88,14 +85,16 @@ def parse_fixdata():
                 lon = dms2dec(line[80:94].strip())
                 fix_id = line[4:34].strip()
                 name = fix_id
-                fid = uuid.uuid4()
-                rows.append({'id': fid, 'fix_id': fix_id, 'name': name, 'lat': lat, 'lon': lon})
+                artcc_high = line[233:237].strip()
+                artcc_low = line[237:241].strip()
+                rows.append({'fix_id': fix_id, 'name': name, 'lat': lat, 'lon': lon,
+                             'artcc_low': artcc_low, 'artcc_high': artcc_high})
     return rows
 
 
 def write_fixdata(rows):
     with open('out/fixdata.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'fix_id', 'name', 'lat', 'lon'])
+        writer = csv.DictWriter(f, fieldnames=['fix_id', 'name', 'lat', 'lon', 'artcc_low', 'artcc_high'])
         writer.writeheader()
         writer.writerows(rows)
 
@@ -109,7 +108,7 @@ def write_navdata_combined(navaid_rows, fix_rows):
         row['waypoint_id'] = row['navaid_id']
         del row['navaid_id']
     with open('out/navdata_combined.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'waypoint_id', 'type', 'name', 'lat', 'lon'])
+        writer = csv.DictWriter(f, fieldnames=['waypoint_id', 'type', 'name', 'lat', 'lon', 'artcc_low', 'artcc_high'])
         writer.writeheader()
         writer.writerows(navaid_rows + fix_rows)
 
@@ -161,7 +160,6 @@ def parse_aptdata():
                 lon = dms2dec(line[550:565])
                 artcc = line[674:678].strip()
                 rows.append({
-                    'id': uuid.uuid4(),
                     'code': loc_id,
                     'icao': icao,
                     'city': city,
@@ -177,78 +175,46 @@ def parse_aptdata():
 def write_aptdata(rows):
     with open('out/aptdata.csv', 'w', newline='', encoding='utf8') as f:
         writer = csv.DictWriter(f,
-                                fieldnames=['id', 'code', 'icao', 'city', 'name', 'artcc', 'elevation', 'lat', 'lon'])
+                                fieldnames=['code', 'icao', 'city', 'name', 'artcc', 'elevation', 'lat', 'lon'])
         writer.writeheader()
         writer.writerows(rows)
 
 
 def parse_stardp():
     rows = []
-    with open(STARDP_FILENAME, 'r') as stardp_f, \
-            open(CIFP_FILENAME, 'r') as cifp_f:
-        cifp_lines = cifp_f.readlines()
-        entry = {}
+    with open(CIFP_FILENAME, 'r') as cifp_f:
+        entry = None
+        prev_entry_id = None
+        prev_transition = None
         route = []
-        procedure = ''
-        transition = ''
-        transition_name = ''
-        pid = None
-        airport = ''
-        for line in stardp_f.readlines():
-            npid = line[:5]
-            fix_type = line[10:12].strip()
-            e = line[38:51].strip().split('.')
-            fix = line[30:35].strip()
-            if len(e) > 1 and route:
-                transition_lines = [l for l in cifp_lines if l[13:19].strip() == procedure and (
-                        (fix_type == 'AA' and fix in line[6:10]) or True)]
-                airports = list(set(l[6:10] for l in transition_lines if l[20:25] == transition))
-                entry['routes'].append(
-                    {'transition': transition, 'name': transition_name, 'route': route, 'airports': airports})
-                route = [fix]
-            elif fix_type == 'AA' and route:
-                _transitions = []
-                transition_lines = [l for l in cifp_lines if l[13:19].strip() == procedure and (
-                        (fix_type == 'AA' and fix in line[6:10]) or True)]
-                rw_lines = [l for l in transition_lines if
-                            ((l[29:34].strip() == route[0] and npid[0] == 'D')
-                             or (l[29:34].strip() == route[-1] and npid[0] == 'S'))
-                            and re.match(r'RW\d+[CLRB]?|ALL', l[20:25])]
-                for rw_line in rw_lines:
-                    airport = rw_line[6:10].strip()
-                    if match := re.search(r'RW\d+[CLRB]?|ALL', rw_line[20:25]):
-                        t = match.group(0).strip()
-                        if re.match(r'RW\d+B', t):
-                            _transitions += [(airport, t.replace('B', c)) for c in 'LR']
-                        else:
-                            _transitions.append((airport, t))
-                if not _transitions:
-                    airports = list(set(l[6:10] for l in transition_lines if l[20:25] == transition))
-                    entry['routes'].append(
-                        {'transition': transition, 'name': transition_name, 'route': route, 'airports': airports})
-                else:
-                    entry['routes'] += [{'transition': t[1], 'name': transition_name, 'route': route,
-                                         'airports': t[0]} for t in _transitions]
-                route = []
-            else:
-                route.append(fix)
-
-            if npid != pid:
-                if entry:
-                    rows.append(entry)
-                entry = {'type': 'DP' if npid[0] == 'D' else 'STAR',
-                         'routes': [],
-                         'transitions': []
-                         }
-            if len(e) > 1:
-                procedure = e[0].strip() if npid[0] == 'D' else e[1].strip()
-                entry['procedure'] = procedure
-                transition = e[1].strip() if npid[0] == 'D' else e[0].strip()
-                if transition not in entry['transitions']:
-                    entry['transitions'].append(transition)
-                transition_name = line[51:161].strip()
-            pid = npid
-
+        for line in cifp_f.readlines():
+            if line[12] in ['D', 'E'] and line[:5] == 'SUSAP':
+                entry_id = line[6:19]
+                # seq_num = line[26:29].strip()
+                transition = line[20:26].strip()
+                if prev_transition is None:
+                    prev_transition = transition
+                fix_name = line[29:34].strip()
+                if (prev_transition != transition or entry_id != prev_entry_id) and len(route) > 0:
+                    if prev_transition != 'ALL':
+                        entry['transitions'].append(prev_transition)
+                    entry['routes'].append({'transition': prev_transition, 'route': list(dict.fromkeys(route))})
+                    prev_transition = transition
+                    route = []
+                if entry_id != prev_entry_id:
+                    if entry:
+                        rows.append(entry)
+                    entry = {
+                        'type': 'DP' if line[12] == 'D' else 'STAR',
+                        'airport': line[6:10].strip(),
+                        'procedure': line[13:19].strip(),
+                        'transitions': [],
+                        'routes': []
+                    }
+                    route = []
+                    prev_transition = None
+                    prev_entry_id = entry_id
+                route.append(fix_name)
     return rows
 
 
@@ -257,77 +223,42 @@ def write_stardp(rows):
         f.write(json.dumps(rows))
 
 
-def get_route_info(aircraft, alt, route_type):
-    try:
-        aircraft = faa_aircraft_description[aircraft]
-    except KeyError:
-        aircraft = {}
-    try:
-        alt = faa_altitude_description[alt]
-    except KeyError:
-        alt = {}
-    min_alt, top_alt = type_altitudes[route_type]
-    rnav = ''
-    if 'RNAV' in aircraft.keys():
-        rnav = "required" if aircraft['RNAV'] else "no"
-    if 'min' in alt.keys():
-        min_alt = alt['min']
-    if 'max' in alt.keys():
-        top_alt = alt['max']
-    if 'fix' in alt.keys():
-        if str(alt['fix']).isnumeric():
-            min_alt = alt['fix']
-            top_alt = alt['fix']
-        else:
-            fix = alt['fix'].split()
-    return min_alt, top_alt, rnav
-
-
-def parse_prefroutes():
-    procedures = {p['proc_id']: p for p in parse_stardp()}
+def parse_prefroutes(stardp_rows):
+    procedures = {' '.join(p['procedure'].split()[:-1]): p for p in stardp_rows}
     prefroute_rows = []
+    prev_is_fix = True
     with open(PREFROUTES_FILENAME, 'r') as f:
         entry = {}
         row = {}
-        route = []
+        route = ''
         airways = []
         for line in f.readlines():
             dep = line[4:9].strip()
             dest = line[9:14].strip()
             route_type = line[14:17].strip()
             if line[0:4] == 'PFR1':
+                route = route + f'.{"." if prev_is_fix else ""}'
+                prev_is_fix = True
                 if entry:
-                    row['route'] = ' '.join(route).strip()
+                    row['route'] = route
                     row['airways'] = ' '.join(airways).strip()
                     prefroute_rows.append(row)
-                eid = uuid.uuid4()
-                route_id = uuid.uuid4()
-                route = []
+                route = ''
                 airways = []
-                alt = line[124:164].strip()
-                aircraft = line[164:214].strip()
-                min_alt, top_alt, rnav = get_route_info(aircraft, alt, route_type)
                 row = {
-                    'id': route_id,
                     'dep': dep,
                     'dest': dest,
-                    'type': route_type,
-                    'lowest_alt': min_alt,
-                    'top_alt': top_alt,
                     'dp': '',
                     'star': '',
-                    'airways': '',
-                    'rnav': rnav
+                    'airways': ''
                 }
-                entry = {'id': eid, 'route_id': route_id, 'dep': dep, 'dest': dest, 'type': route_type}
+                entry = {'dep': dep, 'dest': dest, 'type': route_type}
             if line[0:4] == 'PFR2' and entry['dep'] == dep and entry['dest'] == dest and entry['type'] == route_type:
                 segment = line[22:70].strip()
                 seg_type = line[70:77].strip()
                 if seg_type in ['DP', 'STAR', 'AIRWAY']:
+                    prev_is_fix = False
                     segments = segment.split()
-                    if len(segments) > 1:
-                        if '(RNAV)' in segments:
-                            row['rnav'] = "required"
                     name = ' '.join(s for s in segments if s not in ['(RNAV)', '(CANADIAN)']).strip()
                     try:
                         if seg_type == 'AIRWAY':
@@ -337,20 +268,17 @@ def parse_prefroutes():
                             row[seg_type.lower()] = segment
                     except KeyError:
                         pass
-                route.append(segment)
-    # aircraft = {e: { 'engine': '', 'rnav': '', 'gnss': ''} for e in set(e['aircraft'] for e in rows)}
-    # alts = {e: { 'min_alt': '', 'max_alt': '', 'fix': '', 'engine': '', 'speed': ''} for e in set(e['altitude'] for e in rows)}
-    # with open('faa_ac.json', 'w') as f:
-    #     f.write(json.dumps(aircraft))
-    # with open('faa_alt.json', 'w') as f:
-    #     f.write(json.dumps(alts))
+                    segment = f'.{segment}'
+                else:
+                    segment = f'{"." if prev_is_fix else ""}.{segment}'
+                    prev_is_fix = True
+                route += segment
     return prefroute_rows
 
 
 def write_prefroutes(route_rows):
     with open('out/faa_prd.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'dep', 'dest', 'route', 'dp', 'star', 'airways', 'type', 'rnav',
-                                               'lowest_alt', 'top_alt'])
+        writer = csv.DictWriter(f, fieldnames=['dep', 'dest', 'route', 'dp', 'star', 'airways'])
         writer.writeheader()
         writer.writerows(route_rows)
 
@@ -367,9 +295,10 @@ def parse_awy():
                 mea = '/'.join([line[74:79].lstrip('0').strip(), line[85:90].lstrip('0').strip()]).strip('/')
                 cross_alt = '/'.join([line[110:115].lstrip('0').strip(), line[122:127].lstrip('0').strip()]).strip('/')
                 entry = {
-                    'id': uuid.uuid4(),
                     'airway': awy_name,
                     'wpt': '',
+                    'lat': '',
+                    'lon': '',
                     'type': '',
                     'sequence': line[10:15].strip(),
                     'mea': mea,
@@ -380,7 +309,37 @@ def parse_awy():
                 }
             if line[:4] == 'AWY2':
                 entry['wpt'] = line[120:160].split('*')[1]
-                entry['type'] = line[45:64].strip().replace('REP-PT', 'FIX')
+                lat_str = line[83:97].strip()
+                lon_str = line[97:111].strip()
+                if lat_str and lon_str:
+                    entry['lat'] = dms2dec(lat_str)
+                    entry['lon'] = dms2dec(lon_str)
+                entry['type'] = re.sub(r'.*-PT', 'FIX', line[45:64].strip())
+        if rows[-1] != entry:
+            rows.append(entry)
+    return rows
+
+
+def parse_ats():
+    rows = []
+    with open(ATS_FILENAME, 'r') as f:
+        entry = {}
+        for line in f.readlines():
+            awy_name = line[6:18].strip()
+            if line[:4] == 'ATS1':
+                if entry:
+                    rows.append(entry)
+                entry = {
+                    'airway': awy_name,
+                    'wpt': '',
+                    'type': '',
+                    'sequence': line[21:25].strip(),
+                    'artcc': line[153:156].strip()
+                }
+            if line[:4] == 'ATS2':
+                entry['wpt'] = line[142:146].strip() or line[25:65].strip()
+                entry['type'] = re.sub(r'.*-PT', 'FIX', line[65:90].strip())
+
         if rows[-1] != entry:
             rows.append(entry)
     return rows
@@ -388,27 +347,60 @@ def parse_awy():
 
 def write_awy(rows):
     with open('out/airways.csv', 'w', newline='', encoding='utf8') as f:
-        writer = csv.DictWriter(f, fieldnames=['id', 'airway', 'wpt', 'type', 'sequence', 'mea', 'max_auth_alt', 'moa',
+        writer = csv.DictWriter(f, fieldnames=['airway', 'wpt', 'lat', 'lon', 'type', 'sequence', 'mea', 'max_auth_alt', 'moa',
                                                'min_crossing_alt', 'artcc'])
         writer.writeheader()
         writer.writerows(rows)
 
 
-if __name__ == '__main__':
-    # navaid_rows = parse_navaid_data()
-    # airway_rows = parse_awy()
-    # fixdata_rows = parse_fixdata()
-    # aptdata_rows = parse_aptdata()
-    # acdata_rows = parse_acdata()
-    stardp_rows = parse_stardp()
-    # prefroute_rows = parse_prefroutes()
+def write_ats(rows):
+    with open('out/ats.csv', 'w', newline='', encoding='utf8') as f:
+        writer = csv.DictWriter(f, fieldnames=['airway', 'wpt', 'type', 'sequence', 'artcc'])
+        writer.writeheader()
+        writer.writerows(rows)
 
-    # write_cifp_data()
-    # write_fixdata(fixdata_rows)
-    # write_navaid_data(navaid_rows)
-    # write_navdata_combined(navaid_rows, fixdata_rows)
-    # write_aptdata(aptdata_rows)
+
+def parse_cdr():
+    rows = []
+    with open(CDR_FILENAME, 'r') as f:
+        for line in f.readlines():
+            fields = line.split(',')
+            rows.append({
+                'code': fields[0].strip(),
+                'dep': fields[1].strip(),
+                'dest': fields[2].strip(),
+                'dp_fix': fields[3].strip(),
+                'route': fields[4].strip(),
+                'artcc': fields[5].strip()
+            })
+    return rows
+
+
+def write_cdr(rows):
+    with open('out/cdr.csv', 'w', newline='', encoding='utf8') as f:
+        writer = csv.DictWriter(f, fieldnames=['code', 'dep', 'dest', 'dp_fix', 'route', 'artcc'])
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+if __name__ == '__main__':
+    stardp_rows = parse_stardp()
+    navaid_rows = parse_navaid_data()
+    airway_rows = parse_awy()
+    ats_rows = parse_ats()
+    fixdata_rows = parse_fixdata()
+    aptdata_rows = parse_aptdata()
+    cdr_rows = parse_cdr()
+    prefroute_rows = parse_prefroutes(stardp_rows)
+
+    write_cifp_data()
+    write_fixdata(fixdata_rows)
+    write_navaid_data(navaid_rows)
+    write_navdata_combined(navaid_rows, fixdata_rows)
+    write_aptdata(aptdata_rows)
     write_stardp(stardp_rows)
-    # write_awy(airway_rows)
-    # write_prefroutes(prefroute_rows)
+    write_cdr(cdr_rows)
+    write_awy(airway_rows)
+    write_ats(ats_rows)
+    write_prefroutes(prefroute_rows)
     pass

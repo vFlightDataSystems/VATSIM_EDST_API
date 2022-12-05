@@ -6,6 +6,7 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
+from geopy.distance import distance
 
 from pymongo import MongoClient
 from config import *
@@ -14,12 +15,15 @@ import mongo_users
 NATTYPE_FILENAME = 'adrdata/ACCriteriaTypes.csv'
 STARDP_FILENAME = 'navdata_parser/out/stardp.json'
 AIRWAYS_FILENAME = 'navdata_parser/out/airways.csv'
+ATS_FILENAME = 'navdata_parser/out/ats.csv'
 APT_FILENAME = 'navdata_parser/out/aptdata.csv'
 WAYPOINTS_FILENAME = 'navdata_parser/out/navdata_combined.csv'
 NAVAIDS_FILENAME = 'navdata_parser/out/navaid_data.csv'
 FIXES_FILENAME = 'navdata_parser/out/fixdata.csv'
 FAA_PRD_FILENAME = 'navdata_parser/out/faa_prd.csv'
+FAA_CDR_FILENAME = 'navdata_parser/out/cdr.csv'
 CIFP_DATA_FILENAME = 'navdata_parser/out/cifp_data.json'
+AAR_FILENAME = 'adrdata/2112_AAR.csv'
 
 fd_db_name = 'flightdata'
 nav_db_name = 'navdata'
@@ -63,6 +67,7 @@ def write_beacons(dbname):
         client: MongoClient = get_fd_mongo_client()
         db = client[dbname]
         col = db['beacons']
+        col.drop()
         col.insert_many(list(reader))
         client.close()
 
@@ -80,6 +85,7 @@ def write_nattypes(filename, dbname):
     client: MongoClient = get_fd_mongo_client()
     db = client[dbname]
     col = db['nat_types']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
@@ -91,6 +97,8 @@ def write_adar(filename, dp_data, star_data):
         reader = csv.DictReader(f)
         for entry in reader:
             alphas = entry['Auto Route Alphas'].split('\n')
+            dep_content_criteria = entry['Departure Content Criteria'].split('\r\n')
+            dest_content_criteria = entry['Destination Content Criteria'].split('\r\n')
             row = {
                 'dep': entry['Dep Airports'].split(),
                 'dest': entry['Arr Airports'].split(),
@@ -102,19 +110,22 @@ def write_adar(filename, dp_data, star_data):
                 'top_alt': entry['Upper Altitude'],
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
+                'route_fixes': entry['Route Fixes'],
+                'dep_content_criteria': dep_content_criteria if any(dep_content_criteria) else None,
+                'dest_content_criteria': dest_content_criteria if any(dest_content_criteria) else None,
                 'order': entry['Order'],
-                'route_groups': entry['Route Groups'],
+                'route_groups': entry['Route Groups'].split(),
                 'artcc': artcc
             }
-            for e in alphas:
-                if e[:13] == '(RouteString)':
-                    row['route'] = re.sub(r'\.+', ' ', e[13:]).strip()
-                if e[:9] == '(Airways)':
-                    row['airways'] = e[9:].strip().split()
-                if e[:6] == '(DpId)':
-                    row['dp'] = e[6:].strip()
-                if e[:8] == '(StarId)':
-                    row['star'] = e[8:].strip()
+            for a in alphas:
+                if a[:13] == '(RouteString)':
+                    row['route'] = a[13:].strip()
+                if a[:9] == '(Airways)':
+                    row['airways'] = a[9:].strip().split()
+                if a[:6] == '(DpId)':
+                    row['dp'] = a[6:].strip()
+                if a[:8] == '(StarId)':
+                    row['star'] = a[8:].strip()
 
             star = row['star']
             if star:
@@ -126,7 +137,7 @@ def write_adar(filename, dp_data, star_data):
                         row['route'] = row['route'].replace(star, current_star)
                 else:
                     pass
-                    # print(f'{star} not in nasr!')
+                    print(f'{star} not in nasr!')
             dp = row['dp']
             if dp:
                 dp_id = ''.join([s for s in dp if not s.isdigit()])
@@ -137,7 +148,7 @@ def write_adar(filename, dp_data, star_data):
                         row['route'] = row['route'].replace(dp, current_dp)
                 else:
                     pass
-                    # print(f'{dp} not in nasr!')
+                    print(f'{dp} not in nasr!')
             rows.append(row)
 
     user = f'{artcc}_admin'
@@ -145,6 +156,7 @@ def write_adar(filename, dp_data, star_data):
     client: MongoClient = get_mongo_client(user, password, artcc)
     db = client[artcc]
     col = db[f'adar']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
@@ -155,35 +167,39 @@ def write_adr(filename, dp_data):
     with open(filename, 'r', newline='') as f:
         reader = csv.DictReader(f)
         for entry in reader:
-            tfixes = []
+            tfixes_details = []
             for tfix in entry['Transition Fixes Detail'].split():
                 info = re.search(r'\((.*)\)', tfix).group(0)
-                tfixes.append({
+                tfixes_details.append({
                     'tfix': tfix.replace(info, ''),
                     'info': info[1:-1]
                 })
             alphas = entry['Auto Route Alphas'].split('\n')
+            dep_content_criteria = entry['Departure Content Criteria'].split('\r\n')
             row = {
                 'dep': entry['Airports'].split(),
                 'route': '',
                 'dp': '',
-                'airways': '',
-                'route_groups': entry['Route Groups'],
+                'airways': [],
+                'route_groups': entry['Route Groups'].split(),
                 'min_alt': entry['Lower Altitude'],
                 'top_alt': entry['Upper Altitude'],
                 'ierr': entry['IERR Criteria'].split(),
                 'aircraft_class': entry['AC Class Criteria'].split(),
-                'tfixes': tfixes,
+                'transition_fixes': entry['Transition Fixes'].split(),
+                'transition_fixes_details': tfixes_details,
+                'route_fixes': entry['Route Fixes'].split(),
+                'dep_content_criteria': dep_content_criteria if any(dep_content_criteria) else None,
                 'order': entry['Order'],
                 'xlines': entry['XLines']
             }
-            for e in alphas:
-                if e[:13] == '(RouteString)':
-                    row['route'] = re.sub(r'\.+', ' ', e[13:]).strip()
-                if e[:9] == '(Airways)':
-                    row['airways'] = e[9:].strip()
-                if e[:6] == '(DpId)':
-                    row['dp'] = e[6:].strip()
+            for a in alphas:
+                if a[:13] == '(RouteString)':
+                    row['route'] = a[13:].strip()
+                if a[:9] == '(Airways)':
+                    row['airways'] = a[9:].strip().split()
+                if a[:6] == '(DpId)':
+                    row['dp'] = a[6:].strip()
 
             dp = row['dp']
             if dp:
@@ -204,66 +220,132 @@ def write_adr(filename, dp_data):
     client: MongoClient = get_mongo_client(user, password, artcc)
     db = client[artcc]
     col = db[f'adr']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
 
-def write_faa_prd(filename, dbname):
+def write_aar(filename):
     rows = []
-    with open(filename, 'r') as f:
+    with open(filename, 'r', newline='') as f:
         reader = csv.DictReader(f)
+        for entry in reader:
+            tfixes_details = []
+            for tfix in entry['Transition Fixes Detail'].split():
+                info = re.search(r'\((.*)\)', tfix).group(0)
+                tfixes_details.append({
+                    'tfix': tfix.replace(info, ''),
+                    'info': info[1:-1]
+                })
+            alphas = entry['Auto Route Alphas'].split('\n')
+            dest_content_criteria = entry['Destination Content Criteria'].split('\r\n')
+            row = {
+                'owning_facility': entry['Owning Facility'],
+                'applicable_artcc': entry['Applicable ARTCCs'].split(),
+                'airports': entry['Airports'].split(),
+                'route': '',
+                'star': '',
+                'airways': [],
+                'route_groups': entry['Route Groups'].split(),
+                'min_alt': entry['Lower Altitude'],
+                'top_alt': entry['Upper Altitude'],
+                'ierr': entry['IERR Criteria'].split(),
+                'aircraft_class': entry['AC Class Criteria'].split(),
+                'transition_fixes': entry['Transition Fixes'].split(),
+                'transition_fixes_details': tfixes_details,
+                'route_fixes': entry['Route Fixes'].split(),
+                'dest_content_criteria': dest_content_criteria if any(dest_content_criteria) else None,
+                'order': entry['Order'],
+                'xlines': entry['XLines']
+            }
+            for a in alphas:
+                if a[:13] == '(RouteString)':
+                    row['route'] = a[13:].strip()
+                if a[:9] == '(Airways)':
+                    row['airways'] = a[9:].strip().split()
+                if a[:6] == '(StarId)':
+                    row['star'] = a[6:].strip()
+            if row['route']:
+                rows.append(row)
+
+    client: MongoClient = get_fd_mongo_client()
+    db = client.flightdata
+    col = db[f'aar']
+    col.drop()
+    col.insert_many(rows)
+    client.close()
+
+
+def write_faa_data(dbname):
+    with open(FAA_PRD_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        rows = []
         for row in reader:
-            del row['id']
             row['airways'] = row['airways'].split()
             rows.append(row)
-    client: MongoClient = get_fd_mongo_client()
-    db = client[dbname]
-    col = db['faa_prd']
-    col.insert_many(rows)
-    client.close()
+        client: MongoClient = get_fd_mongo_client()
+        db = client[dbname]
+        col = db['faa_prd']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
+
+    with open(FAA_CDR_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        client: MongoClient = get_fd_mongo_client()
+        db = client[dbname]
+        col = db['faa_cdr']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
 
 
-def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, apt_filename, navaids_filename,
-                  fixes_filename, cifp_data_filename):
-    with open(cifp_data_filename, 'r') as f:
+def write_navdata(dbname):
+    with open(CIFP_DATA_FILENAME, 'r') as f:
         cifp_data = json.load(f)
 
-    with open(stardp_filename, 'r') as f:
+    with open(STARDP_FILENAME, 'r') as f:
         rows = json.load(f)
         client: MongoClient = get_nav_mongo_client()
         db = client[dbname]
         col = db['procedures']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
+
+    with open(WAYPOINTS_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['waypoints']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
+
+    with open(AIRWAYS_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['airways']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
+
+    with open(ATS_FILENAME, 'r') as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['oceanic_airways']
+        col.drop()
         col.insert_many(rows)
         client.close()
 
     rows = []
-    with open(navdata_filename, 'r') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
-
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['waypoints']
-    col.insert_many(rows)
-    client.close()
-
-    rows = []
-    with open(airways_filename, 'r') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
-
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['airways']
-    col.insert_many(rows)
-    client.close()
-
-    rows = []
-    with open(apt_filename, 'r') as f:
+    with open(APT_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
             row['runways'] = []
@@ -277,40 +359,36 @@ def write_navdata(dbname, stardp_filename, navdata_filename, airways_filename, a
             except Exception as e:
                 pass  # print(row, e)
             row['procedures'] = [{'procedure': key, 'runways': val} for key, val in row_procedures.items()]
-            del row['id']
             rows.append(row)
 
     client: MongoClient = get_nav_mongo_client()
     db = client[dbname]
     col = db['airports']
+    col.drop()
     col.insert_many(rows)
     client.close()
 
-    rows = []
-    with open(navaids_filename, 'r') as f:
+    with open(NAVAIDS_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
+        rows = list(reader)
 
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['navaids']
-    col.insert_many(rows)
-    client.close()
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['navaids']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
 
-    rows = []
-    with open(fixes_filename, 'r') as f:
+    with open(FIXES_FILENAME, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
-            del row['id']
-            rows.append(row)
+        rows = list(reader)
 
-    client: MongoClient = get_nav_mongo_client()
-    db = client[dbname]
-    col = db['fixes']
-    col.insert_many(rows)
-    client.close()
+        client: MongoClient = get_nav_mongo_client()
+        db = client[dbname]
+        col = db['fixes']
+        col.drop()
+        col.insert_many(rows)
+        client.close()
 
 
 def add_mongo_users():
@@ -324,20 +402,128 @@ def add_mongo_users():
         )
 
 
+def write_fav():
+    client = get_admin_mongo_client()
+    with open('fav/Boundaries.json', 'r') as f:
+        fav = [e for e in json.load(f)['features'] if re.match(r'K\S{3}', e['properties']['id'])]
+        for e in fav:
+            artcc = e['properties']['id'][1:].lower()
+            if e['geometry']['type'] == 'MultiPolygon' and len(e['geometry']['coordinates']) == 1:
+                e['geometry']['type'] = 'Polygon'
+                e['geometry']['coordinates'] = e['geometry']['coordinates'][0]
+            del e['properties']['label_lat']
+            del e['properties']['label_lon']
+            del e['type']
+            col = client[artcc]['ctr_fav']
+            col.drop()
+            col.insert_one(e)
+    client.close()
+
+
+def write_artcc_fav(artcc):
+    client = get_admin_mongo_client()
+    ctr_fav_path = f'fav/{artcc.lower()}/{artcc.upper()}_CTR_FAV_Data.geojson'
+    app_fav_path = f'fav/{artcc.lower()}/{artcc.upper()}_APP_FAV_Data.geojson'
+    if os.path.exists(ctr_fav_path):
+        with open(ctr_fav_path, 'r') as f:
+            col = client[artcc]['ctr_fav']
+            col.insert_many(json.load(f)['features'])
+    if os.path.exists(app_fav_path):
+        with open(app_fav_path, 'r') as f:
+            col = client[artcc]['app_fav']
+            col.drop()
+            col.insert_many(json.load(f)['features'])
+    client.close()
+
+
+def write_artcc_profiles(artcc):
+    client = get_admin_mongo_client()
+    path = f'fav/{artcc.lower()}/{artcc.upper()}_Sector_Profiles.json'
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            col = client[artcc]['ctr_profiles']
+            data = json.load(f)
+            mongo_data = []
+            for profile_id, profile_data in data.items():
+                mongo_data.append({'id': profile_id, 'name': profile_data['name'], 'sectors': profile_data['sectors']})
+            col.insert_many(mongo_data)
+
+
+def write_gpd_data(artcc):
+    client = get_admin_mongo_client()
+    with open(f'gpd/{artcc.upper()}_gpd_config.json', 'r') as f:
+        gpd_data = json.load(f)
+        navaid_list = []
+        navdata_prefs = gpd_data['navdata_prefs']
+        basepoint = (float(navdata_prefs['artcc_base_lat']), float(navdata_prefs['artcc_base_lon']))
+        rad = int(navdata_prefs['radius'])
+        for navaid in client.navdata.navaids.find({}, {'_id': False, 'artcc_low': False, 'artcc_high': False, 'name': False}):
+            navaid_pos = (float(navaid['lat']), float(navaid['lon']))
+            if distance(basepoint, navaid_pos).nautical < rad:
+                navaid_list.append(navaid)
+        col = client[artcc]['gpd_navaids']
+        col.drop()
+        col.insert_many(navaid_list)
+        airport_list = []
+        for airport in client.navdata.navaids.find({}, {'_id': False, 'city': False, 'elevation': False, 'name': False, 'procedures': False, 'runways': False}):
+            airport_pos = (float(airport['lat']), float(airport['lon']))
+            if distance(basepoint, airport_pos).nautical < rad:
+                airport_list.append(airport)
+        airway_segment_list = []
+        for awy_segment in client.navdata.airways.find({}, {'_id': False, 'artcc': False, 'min_crossing_alt': False, 'max_auth_alt': False, 'moa': False, 'mea': False}):
+            if awy_segment['lat'] and awy_segment['lon']:
+                segment_pos = (float(awy_segment['lat']), float(awy_segment['lon']))
+                if distance(basepoint, segment_pos).nautical < rad:
+                    airway_segment_list.append(awy_segment)
+        col = client[artcc]['gpd_airways']
+        col.drop()
+        col.insert_many(airway_segment_list)
+        col = client[artcc]['gpd_airports']
+        col.drop()
+        col.insert_many(airport_list)
+        col = client[artcc]['gpd_sectors']
+        col.drop()
+        col.insert_many(gpd_data['sectors'])
+        col = client[artcc]['gpd_waypoints']
+        col.drop()
+        col.insert_many(navdata_prefs['fixes'])
+
+    client.close()
+
+
+def write_all_artcc_ref_fixes():
+    client = get_admin_mongo_client()
+    with open('All_ARTCC_Ref_Fixes.json', 'r') as f:
+        ref_fix_data = json.load(f)
+        for artcc, fixes in ref_fix_data.items():
+            col = client[artcc.lower()]['reference_fixes']
+            col.drop()
+            col.insert_many(fixes)
+    client.close()
+
+
 if __name__ == '__main__':
-    write_navdata(nav_db_name, STARDP_FILENAME, WAYPOINTS_FILENAME, AIRWAYS_FILENAME, APT_FILENAME, NAVAIDS_FILENAME,
-                  FIXES_FILENAME, CIFP_DATA_FILENAME)
-    # write_nattypes(NATTYPE_FILENAME, fd_db_name)
-    # with open(STARDP_FILENAME, 'r') as f:
-    #     stardp_data = json.load(f)
-    # dp_data = {row['procedure']: row for row in stardp_data if row['type'] == 'DP'}
-    # star_data = {row['procedure']: row for row in stardp_data if row['type'] == 'STAR'}
-    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-    #     path = Path(filepath)
-    #     if path.stem[:3] == 'adr':
-    #         write_adr(filepath, dp_data)
-    #     if path.stem[:4] == 'adar':
-    #         write_adar(filepath, dp_data, star_data)
-    # write_faa_prd(FAA_PRD_FILENAME, fd_db_name)
+    write_navdata(nav_db_name)
+    write_nattypes(NATTYPE_FILENAME, fd_db_name)
+    with open(STARDP_FILENAME, 'r') as f:
+        stardp_data = json.load(f)
+    dp_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'DP'}
+    star_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'STAR'}
+    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+        path = Path(filepath)
+        if path.stem[:3] == 'adr':
+            write_adr(filepath, dp_data)
+        if path.stem[:4] == 'adar':
+            write_adar(filepath, dp_data, star_data)
+    write_aar(AAR_FILENAME)
+    # write_faa_data(fd_db_name)
     # write_beacons(fd_db_name)
     # add_mongo_users()
+    # write_fav()
+    # write_artcc_fav('zbw')
+    # write_artcc_fav('zlc')
+    # write_gpd_data('zbw')
+    # write_gpd_data('zlc')
+    # write_artcc_profiles('zlc')
+    # write_all_artcc_ref_fixes()
+    pass

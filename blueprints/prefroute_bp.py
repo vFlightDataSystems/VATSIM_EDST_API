@@ -19,7 +19,7 @@ def _get_prefroute(dep: str, dest: str):
     equipment = None
     route_groups = None
     if request.method == 'POST':
-        altitude = request.form.get('altitude', type=int, default=None)
+        altitude = request.form.get('altitude', default=None)
         aircraft = request.form.get('aircraft', default=None)
         equipment = request.form.get('equipment', default=None)
         route_groups = request.form.get('route_group', default=None)

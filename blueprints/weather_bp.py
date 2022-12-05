@@ -1,11 +1,10 @@
+import logging
 import re
 from typing import Optional
 
 import requests
 from lxml import etree
 from flask import Blueprint, jsonify
-
-from libs.lib import get_all_connections
 
 weather_blueprint = Blueprint('weather', __name__)
 
@@ -29,23 +28,6 @@ def get_datis(airport):
         return json
 
 
-def get_vatsim_atis(airport: str) -> Optional[list]:
-    if (connections := get_all_connections()) is not None:
-        if 'atis' in connections.keys():
-            if atis_connection := next(
-                    filter(lambda x: x['callsign'] == f'{airport.upper()}_ATIS', connections['atis']), None):
-                atis_str = ' '.join(atis_connection['text_atis'])
-                return [{
-                    'atis_string': atis_str,
-                    'letter': atis_connection['atis_code'],
-                    'time': re.search(r'\d{4}Z', atis_str)[0],
-                    'type': 'vatsim_atis',
-                    'airport': airport
-                }]
-    else:
-        return None
-
-
 @weather_blueprint.route('/metar/airport/<airport>')
 def _metar(airport):
     response = requests.get(
@@ -58,14 +40,29 @@ def _metar(airport):
     return jsonify(metar_list)
 
 
+@weather_blueprint.route('/sigmets')
+def _get_sigmets():
+    response = requests.get(
+        'https://www.aviationweather.gov/adds/dataserver_current'
+        '/httpparam?dataSource=airsigmets&requestType=retrieve&format=xml&hoursBeforeNow=6')
+    sigmet_list = []
+    tree = etree.fromstring(response.content)
+    for entry in tree.iter('AIRSIGMET'):
+        try:
+            sigmet_entry = {
+                'text': entry.find('raw_text').text,
+                'hazard': dict(entry.find('hazard').attrib),
+                'area': [[p.find('longitude').text, p.find('latitude').text] for p in entry.find('area').iter('point')],
+                'altitude': dict(entry.find('altitude').attrib),
+                'airsigmet_type': entry.find('airsigmet_type').text,
+            }
+            sigmet_list.append(sigmet_entry)
+        except Exception as e:
+            pass
+            # logging.Logger(str(e))
+    return jsonify(sigmet_list)
+
+
 @weather_blueprint.route('/datis/airport/<airport>')
 def _get_datis(airport):
     return jsonify(get_datis(airport))
-
-
-@weather_blueprint.route('/atis/vatsim/airport/<airport>')
-def _get_vatsim_atis(airport):
-    if (atis := get_vatsim_atis(airport)) is not None:
-        return jsonify(atis)
-    else:
-        return jsonify(get_datis(airport))
