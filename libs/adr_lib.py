@@ -10,10 +10,12 @@ def get_artcc_adr(artcc: str, airport: str = ''):
     return response.json()
 
 
-def truncate_route(route: str, route_fixes: list, tfix: str):
+def truncate_route(route: str, route_fixes: list, tfix: str, implicit_segment: str = None):
     remaining_route = route
     if tfix in route:
         remaining_route = route[route.index(tfix):]
+    elif implicit_segment in route:
+        remaining_route = route[route.rindex(implicit_segment):]
     else:
         for fix in route_fixes[route_fixes.index(tfix):]:
             if fix in route:
@@ -34,6 +36,7 @@ def amend_adr(route: str, adr: dict) -> dict:
     route = lib.format_route(route)
     route_fixes = lib.get_route_fixes(route, adr['departureAirportIds'])
     triggered_tfix = None
+    implicit_segment = None
     tfixes = adr['transitionFixes']
     for tfix in reversed(tfixes):
         fix = tfix['fix']
@@ -56,7 +59,7 @@ def amend_adr(route: str, adr: dict) -> dict:
         'triggeredFix': triggered_tfix['fix'],
         'eligible': adr['eligible'],
         'rnavRequired': adr['rnavRequired'],
-        'truncatedRoute': truncate_route(route, route_fixes, triggered_tfix['fix']),
+        'truncatedRoute': truncate_route(route, route_fixes, triggered_tfix['fix'], implicit_segment),
         'order': adr['order'],
         'routeGroups': adr['routeGroups']
     } if triggered_tfix else None
