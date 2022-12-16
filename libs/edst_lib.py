@@ -71,7 +71,7 @@ def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> 
         for tfix_details in aar['transitionFixes']:
             fix = tfix_details['fix']
             if fix in route_fixes:
-                aar['eligible'] = ((int(aar['minimumAltitude']) <= alt <= int(aar['topAltitude'])) or alt == 0) and \
+                aar['eligible'] = ((int(aar['minimumAltitude']) <= alt <= int(aar['maximumAltitude'])) or alt == 0) and \
                                   any(set(aar['aircraftClasses']).intersection(nat_list))
                 amended_aar = aar_lib.amend_aar(route, aar)
                 if amended_aar:
@@ -89,7 +89,7 @@ def get_edst_adr(artcc: str, dep: str, aircraft: str, alt: int, route: str) -> l
     for adr in adr_list:
         for tfix in adr['transitionFixes']:
             if tfix['fix'] in route_fixes:
-                adr['eligible'] = ((int(adr['minimumAltitude']) <= alt <= int(adr['topAltitude'])) or alt == 0) and \
+                adr['eligible'] = ((int(adr['minimumAltitude']) <= alt <= int(adr['maximumAltitude'])) or alt == 0) and \
                                   any(set(adr['aircraftClasses']).intersection(nat_list))
                 amended_adr = adr_lib.amend_adr(route, adr)
                 if amended_adr:
