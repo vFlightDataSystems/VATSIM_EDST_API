@@ -14,7 +14,7 @@ def truncate_route(route: str, route_fixes: list, tfix: str, implicit_segment: s
     remaining_route = route
     if tfix in route:
         remaining_route = route[route.index(tfix):]
-    elif implicit_segment in route:
+    elif implicit_segment and implicit_segment in route:
         remaining_route = route[route.rindex(implicit_segment):]
     else:
         for fix in route_fixes[route_fixes.index(tfix):]:
