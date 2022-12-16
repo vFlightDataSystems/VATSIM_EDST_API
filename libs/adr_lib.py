@@ -18,7 +18,7 @@ def truncate_route(route: str, route_fixes: list, tfix: str):
         for fix in route_fixes[route_fixes.index(tfix):]:
             if fix in route:
                 following_segment = route[route.index(fix) + len(fix):].strip('.').split('.')[0]
-                remaining_route = route[route.index(following_segment)]
+                remaining_route = route[route.index(following_segment):]
                 break
     return remaining_route
 
