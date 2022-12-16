@@ -49,7 +49,7 @@ def amend_adr(route: str, adr: dict) -> dict:
                     adr_route = adr_route + fix
                     break
                 elif info == 'Explicit':
-                    adr_route = adr_route[:adr_route.index(fix) + len(fix)]
+                    adr_route = adr_route[:adr_route.rindex(fix) + len(fix)]
                 elif info == 'Implicit':
                     implicit_segment = tfix['implicitSegment']
                     adr_route = adr_route[:adr_route.index(implicit_segment) + len(implicit_segment)] + f'.{fix}'
