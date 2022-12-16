@@ -34,26 +34,22 @@ def amend_adr(route: str, adr: dict) -> dict:
     route = lib.format_route(route)
     route_fixes = lib.get_route_fixes(route, adr['departureAirportIds'])
     triggered_tfix = None
-    # if adr matches initial route, there is nothing to do.
-    if adr_route == route[:len(adr_route)]:
-        adr_route = ''
-    else:
-        tfixes = adr['transitionFixes']
-        for tfix in reversed(tfixes):
-            fix = tfix['fix']
-            # find farthest tfix which triggered the ADR
-            if fix in route_fixes:
-                triggered_tfix = tfix
-                info = tfix['type']
-                if info == 'Append':
-                    adr_route = adr_route + fix
-                    break
-                elif info == 'Explicit':
-                    adr_route = adr_route[:adr_route.rindex(fix) + len(fix)]
-                elif info == 'Implicit':
-                    implicit_segment = tfix['implicitSegment']
-                    adr_route = adr_route[:adr_route.index(implicit_segment) + len(implicit_segment)] + f'.{fix}'
+    tfixes = adr['transitionFixes']
+    for tfix in reversed(tfixes):
+        fix = tfix['fix']
+        # find farthest tfix which triggered the ADR
+        if fix in route_fixes:
+            triggered_tfix = tfix
+            info = tfix['type']
+            if info == 'Append':
+                adr_route = adr_route + fix
                 break
+            elif info == 'Explicit':
+                adr_route = adr_route[:adr_route.rindex(fix) + len(fix)]
+            elif info == 'Implicit':
+                implicit_segment = tfix['implicitSegment']
+                adr_route = adr_route[:adr_route.index(implicit_segment) + len(implicit_segment)] + f'.{fix}'
+            break
 
     return {
         'amendment': adr_route,
