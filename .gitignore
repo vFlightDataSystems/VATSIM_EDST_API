@@ -8,3 +8,6 @@
 /adrdata/out/
 /adrdata/zbw/
 /adrdata/zoa/
+
+__pycache__/
+venv
