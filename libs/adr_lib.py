@@ -6,7 +6,7 @@ import libs.cache as cache
 @cache.time_cache(300)
 def get_artcc_adr(artcc: str, airport: str = ''):
     response = requests.get(
-        f'https://data-api.virtualnas.net/api/adapted-routes?artccId={artcc.upper()}&type=Departure&departureAirportId={airport.upper()}')
+        f'https://data-api.vnas.vatsim.net/api/adapted-routes?artccId={artcc.upper()}&type=Departure&departureAirportId={airport.upper()}')
     return response.json()
 
 
