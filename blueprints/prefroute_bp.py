@@ -1,5 +1,6 @@
 import re
 from flask import g, Blueprint, request, jsonify
+from mongo_client import get_reader_client
 from pymongo import MongoClient
 
 prefroute_blueprint = Blueprint('prefroute', __name__)
@@ -24,7 +25,7 @@ def _get_prefroute(dep: str, dest: str):
         equipment = request.form.get('equipment', default=None)
         route_groups = request.form.get('route_group', default=None)
 
-    client: MongoClient = g.mongo_fd_client
+    client: MongoClient = get_reader_client()
 
     adar_list = list(
         client.flightdata.adar.find({'dep': {'$in': [dep.upper()]}, 'dest': {'$in': [dest.upper()]}}, {'_id': False}))

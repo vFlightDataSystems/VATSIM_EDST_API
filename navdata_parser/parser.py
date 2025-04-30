@@ -148,7 +148,7 @@ def write_cifp_data():
 
 def parse_aptdata():
     rows = []
-    with open(APTDATA_FILENAME, 'r') as nasr_apt_file:
+    with open(APTDATA_FILENAME, 'r', encoding='utf-8', errors='ignore') as nasr_apt_file:
         for line in nasr_apt_file.readlines():
             if line[0:3] == 'APT':
                 loc_id = line[27:31].strip()
@@ -393,14 +393,14 @@ if __name__ == '__main__':
     cdr_rows = parse_cdr()
     prefroute_rows = parse_prefroutes(stardp_rows)
 
-    write_cifp_data()
-    write_fixdata(fixdata_rows)
-    write_navaid_data(navaid_rows)
-    write_navdata_combined(navaid_rows, fixdata_rows)
-    write_aptdata(aptdata_rows)
+    # write_cifp_data()
+    # write_fixdata(fixdata_rows)
+    # write_navaid_data(navaid_rows)
+    # write_navdata_combined(navaid_rows, fixdata_rows)
+    # write_aptdata(aptdata_rows)
     write_stardp(stardp_rows)
-    write_cdr(cdr_rows)
-    write_awy(airway_rows)
-    write_ats(ats_rows)
-    write_prefroutes(prefroute_rows)
+    # write_cdr(cdr_rows)
+    # write_awy(airway_rows)
+    # write_ats(ats_rows)
+    # write_prefroutes(prefroute_rows)
     pass
