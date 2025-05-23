@@ -8,3 +8,11 @@
 /adrdata/out/
 /adrdata/zbw/
 /adrdata/zoa/
+
+__pycache__/
+venv
+
+.DS_Store
+
+CIFP/
+NASR/

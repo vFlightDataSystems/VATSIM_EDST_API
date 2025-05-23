@@ -15,7 +15,7 @@ clean_route_pattern = re.compile(r'\+|/(.*?)\s|(\s?)DCT(\s?)|N[0-9]{4}[FAM][0-9]
 
 @cache.time_cache(300)
 def get_aircraft_type_collection():
-    response = requests.get('https://data-api.virtualnas.net/api/aircraft-class-collections')
+    response = requests.get('https://data-api.vnas.vatsim.net/api/aircraft-class-collections')
     return response.json()
 
 
@@ -97,7 +97,7 @@ def get_route_fixes(route: str, airports: list = None, dest: str = None) -> list
         airports = []
     if dest and dest not in airports:
         airports.append(dest)
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    client: MongoClient = mongo_client.reader_client
     route = list(filter(None, re.split(r'\s|\.', route)))
     new_route = []
     prev_segment = None

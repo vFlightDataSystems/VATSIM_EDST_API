@@ -7,10 +7,10 @@ import re
 from collections import defaultdict
 from pathlib import Path
 from geopy.distance import distance
+import xml.etree.ElementTree as ET
 
 from pymongo import MongoClient
 from config import *
-import mongo_users
 
 NATTYPE_FILENAME = 'adrdata/ACCriteriaTypes.csv'
 STARDP_FILENAME = 'navdata_parser/out/stardp.json'
@@ -24,6 +24,8 @@ FAA_PRD_FILENAME = 'navdata_parser/out/faa_prd.csv'
 FAA_CDR_FILENAME = 'navdata_parser/out/cdr.csv'
 CIFP_DATA_FILENAME = 'navdata_parser/out/cifp_data.json'
 AAR_FILENAME = 'adrdata/2112_AAR.csv'
+ADR_FILENAME = 'adrdata/ADR.xml'
+ADAR_FILENAME = 'adrdata/ADAR.xml'
 
 fd_db_name = 'flightdata'
 nav_db_name = 'navdata'
@@ -160,6 +162,48 @@ def write_adar(filename, dp_data, star_data):
     col.insert_many(rows)
     client.close()
 
+def parse_adar_record(record, dp_data, star_data):
+    def text_or_none(elem, tag):
+        found = elem.find(tag)
+        return found.text.strip() if found is not None else None
+
+    def find_all_text(elem, tag):
+        return [e.text.strip() for e in elem.findall(tag)]
+
+    # Extract the fields and match to your schema
+    doc = {
+        'dep': find_all_text(record.find("ADARDepartureList") or [], "AirportID"),
+        'dest': find_all_text(record.find("ADARArrivalList") or [], "AirportID"),
+        'route': text_or_none(record.find("ADARAutoRouteAlphas"), "RouteString"),
+        'dp': text_or_none(record.find("ADARAutoRouteAlphas"), "DP_ID"),
+        'star': text_or_none(record.find("ADARAutoRouteAlphas"), "STAR_ID"),
+        'airways': [fix.find("FixName").text.strip() for fix in record.findall("RouteFixList/RouteFix")],
+        'min_alt': int(text_or_none(record, "LowerAltitude") or 0),
+        'top_alt': int(text_or_none(record, "UpperAltitude") or 0),
+        'ierr': [text_or_none(criteria, "IERRCriteriaID") for criteria in record.findall("ADARIERRCriteria")],
+        'aircraft_class': [text_or_none(criteria, "AircraftClassCriteriaID") for criteria in record.findall("ADARACClassCriteriaList")],
+        'route_fixes': [fix.find("FixName").text.strip() for fix in record.findall("RouteFixList/RouteFix")],
+        'dep_content_criteria': text_or_none(record, "DepartureContentCriteria"),
+        'dest_content_criteria': text_or_none(record, "DestinationContentCriteria"),
+        'order': int(text_or_none(record, "Order") or 0),
+        'route_groups': [],  # You can modify if you have additional information
+        'artcc': 'ZDV'
+    }
+    return doc
+
+def import_adar_xml(xml_path, dp_data, star_data, mongo_uri="mongodb://localhost:27017", db_name="flightdata", collection="adar"):
+    tree = ET.parse(xml_path)
+    root = tree.getroot()
+
+    records = []
+    for record in root.findall("ADARRecord"):
+        doc = parse_adar_record(record, dp_data, star_data)
+        records.append(doc)
+
+    client = get_fd_mongo_client()
+    db = client.flightdata
+    result = db[collection].insert_many(records)
+    print(f"Inserted {len(result.inserted_ids)} ADAR records.")
 
 def write_adr(filename, dp_data):
     rows = []
@@ -224,6 +268,146 @@ def write_adr(filename, dp_data):
     col.insert_many(rows)
     client.close()
 
+def get_text(elem, default=None):
+    return elem.text.strip() if elem is not None and elem.text else default
+
+def parse_adr_xml(xml_file):
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
+
+    records = []
+    for record in root.findall('ADRRecord'):
+        # Core fields
+        adr_id = get_text(record.find('ADR_ID'))
+        upper_alt = get_text(record.find('UpperAltitude'))
+        lower_alt = get_text(record.find('LowerAltitude'))
+        order = get_text(record.find('Order'))
+        auto_route_limit = get_text(record.find('AutoRouteLimit'))
+
+        # AutoRouteAlphas (Optional but common)
+        alpha = record.find('ADRAutoRouteAlphas')
+        route_string = get_text(alpha.find('RouteString')) if alpha is not None else None
+        protected_area = get_text(alpha.find('ProtectedAreaOverwrite')) if alpha is not None else None
+        dp_id = get_text(alpha.find('DP_ID')) if alpha is not None else None
+
+        # Route Fixes
+        route_fixes = []
+        for rf in record.findall('RouteFixList/RouteFix'):
+            fix = get_text(rf.find('FixName'))
+            if fix:
+                route_fixes.append(fix)
+
+        # Transition Fix
+        tf = record.find('ADRTransitionFix')
+        transition_fix = {
+            'FixName': get_text(tf.find('FixName')),
+            'FixID': get_text(tf.find('FixID')),
+            'ICAOCode': get_text(tf.find('ICAOCode')),
+            'TFixType': get_text(tf.find('TFixType')),
+            'TFixIndex': get_text(tf.find('TFixIndex'))
+        } if tf is not None else None
+
+        # Airport List
+        airports = [get_text(ap) for ap in record.findall('ADRAirportList/AirportID') if get_text(ap)]
+
+        # Aircraft Class Criteria
+        ac_criteria = []
+        for crit in record.findall('ADRACClassCriteriaList'):
+            ac_criteria.append({
+                'ID': get_text(crit.find('AircraftClassCriteriaID')),
+                'Facility': get_text(crit.find('AircraftClassCriteriaFac')),
+                'IsExcluded': get_text(crit.find('IsExcluded'))
+            })
+
+        # IERR Criteria
+        ierr = record.find('ADRIERRCriteria')
+        ierr_criteria = {
+            'IERRCriteriaID': get_text(ierr.find('IERRCriteriaID')),
+            'IERRFacility': get_text(ierr.find('IERRFacility')),
+            'RoutePriority': get_text(ierr.find('RoutePriority'))
+        } if ierr is not None else None
+
+        # Departure Content Criteria (optional, single line or multiline)
+        content_criteria_elem = record.find('DepartureContentCriteria/ContentCriteria')
+        if content_criteria_elem is not None and content_criteria_elem.text:
+            dep_content_criteria = [
+                line.strip() for line in content_criteria_elem.text.strip().splitlines() if line.strip()
+            ]
+        else:
+            dep_content_criteria = None
+
+        # Crossing Lines (optional)
+        crossing_lines = []
+        for cl in record.findall('ADRCrossingLine'):
+            cl_dict = {
+                'CrossingLineID': get_text(cl.find('CrossingLineID')),
+                'UpperAltitude': get_text(cl.find('UpperAltitude')),
+                'LowerAltitude': get_text(cl.find('LowerAltitude')),
+                'TransitionLineDistance': get_text(cl.find('TransitionLineDistance')),
+                'ApplicabilityType': get_text(cl.find('CrossingLineApplicability/ApplicabilityType')),
+                'PriorityInd': get_text(cl.find('CrossingLineApplicability/PriorityInd')),
+                'TransFix': {
+                    'FixName': get_text(cl.find('ADRCrossingLineTransFix/FixName')),
+                    'FixID': get_text(cl.find('ADRCrossingLineTransFix/FixID')),
+                    'ICAOCode': get_text(cl.find('ADRCrossingLineTransFix/ICAOCode')),
+                },
+                'Airports': [
+                    get_text(aid) for aid in cl.findall('ADRLineAirportList/AirportID') if get_text(aid)
+                ],
+                'AircraftClassCriteria': [
+                    {
+                        'ID': get_text(ac.find('AircraftClassCriteriaID')),
+                        'Facility': get_text(ac.find('AircraftClassCriteriaFac')),
+                        'IsExcluded': get_text(ac.find('IsExcluded')),
+                    }
+                    for ac in cl.findall('ADRLineACCCriteriaList')
+                ],
+                'Coordinates': [
+                    {
+                        'Latitude': get_text(coord.find('Latitude')),
+                        'Longitude': get_text(coord.find('Longitude')),
+                        'XSpherical': get_text(coord.find('XSpherical')),
+                        'YSpherical': get_text(coord.find('YSpherical')),
+                        'ZSpherical': get_text(coord.find('ZSpherical')),
+                    }
+                    for coord in cl.findall('ADRLineCoordinates')
+                ]
+            }
+            crossing_lines.append(cl_dict)
+
+        # Optional comment
+        comment = get_text(record.find('UserComment'))
+
+        # Final structured object
+        records.append({
+            'adr_id': adr_id,
+            'min_alt': lower_alt,
+            'top_alt': upper_alt,
+            'order': order,
+            'route': route_string,
+            'dp': dp_id,
+            'airways': [],  # can be filled if present
+            'route_fixes': route_fixes,
+            'transition_fix': transition_fix,
+            'airports': airports,
+            'aircraft_class': ac_criteria,
+            'ierr': ierr_criteria,
+            'dep_content_criteria': dep_content_criteria,
+            'crossing_lines': crossing_lines,
+            'user_comment': comment
+        })
+
+    return records
+
+def write_adr_xml_to_mongo(xml_file, mongo_uri="mongodb://localhost:27017", db_name="zdv"):
+    records = parse_adr_xml(xml_file)
+
+    client = get_fd_mongo_client()
+    db = client.flightdata
+    col = db['adr']
+    col.drop()
+    col.insert_many(records)
+    client.close()
 
 def write_aar(filename):
     rows = []
@@ -516,14 +700,16 @@ if __name__ == '__main__':
         if path.stem[:4] == 'adar':
             write_adar(filepath, dp_data, star_data)
     write_aar(AAR_FILENAME)
-    # write_faa_data(fd_db_name)
-    # write_beacons(fd_db_name)
-    # add_mongo_users()
-    # write_fav()
-    # write_artcc_fav('zbw')
-    # write_artcc_fav('zlc')
-    # write_gpd_data('zbw')
-    # write_gpd_data('zlc')
-    # write_artcc_profiles('zlc')
-    # write_all_artcc_ref_fixes()
+    write_faa_data(fd_db_name)
+    write_beacons(fd_db_name)
+    add_mongo_users()
+    write_fav()
+    write_artcc_fav('zbw')
+    write_artcc_fav('zlc')
+    write_gpd_data('zbw')
+    write_gpd_data('zlc')
+    write_artcc_profiles('zlc')
+    write_all_artcc_ref_fixes()
+    write_adr_xml_to_mongo(ADR_FILENAME)
+    import_adar_xml(ADAR_FILENAME, dp_data, star_data)
     pass

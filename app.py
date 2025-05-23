@@ -1,5 +1,5 @@
 from flask import Flask
-# from flask_cors import CORS
+from flask_cors import CORS
 import threading
 
 from blueprints.edst_bp import edst_blueprint
@@ -14,10 +14,10 @@ PREFIX = '/api'
 
 def create_app():
     app = Flask(__name__)
-    # CORS(app)
+    CORS(app)
+    app.config['CORS_HEADERS'] = 'Content-Type'
     register_extensions(app)
     return app
-
 
 def register_extensions(app):
     app.register_blueprint(prefroute_blueprint, url_prefix=f'{PREFIX}/prefroute')
