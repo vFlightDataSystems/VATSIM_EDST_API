@@ -153,10 +153,8 @@ def write_adar(filename, dp_data, star_data):
                     print(f'{dp} not in nasr!')
             rows.append(row)
 
-    # user = f'{artcc}_admin'
-    # password = mongo_users.users[user]
-    user = "admin"
-    password = "password"
+    user = f'{artcc}_admin'
+    password = mongo_users.users[user]
     client: MongoClient = get_mongo_client(user, password, artcc)
     db = client[artcc]
     col = db[f'adar']
