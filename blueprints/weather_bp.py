@@ -31,12 +31,10 @@ def get_datis(airport):
 @weather_blueprint.route('/metar/airport/<airport>')
 def _metar(airport):
     response = requests.get(
-        f'https://aviationweather.gov/api/data/metar?ids={airport}&format=xml')
+        f'https://metar.vatsim.net/{airport}')
 
-    tree = etree.fromstring(response.content)
-    metar_list = [e.text for e in tree.iter('raw_text')]
-
-    return jsonify(metar_list)
+    metar_text = response.content.decode('utf-8')
+    return jsonify([metar_text])
 
 
 @weather_blueprint.route('/sigmets')

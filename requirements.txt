@@ -2,9 +2,12 @@ blinker==1.9.0
 certifi==2025.1.31
 charset-normalizer==3.4.1
 click==8.1.8
+dms2dec==0.1
 dnspython==2.7.0
 Flask==3.1.0
-flask-cors==5.0.1
+flask-cors==6.0.0
+geographiclib==2.0
+geopy==2.4.1
 haversine==2.9.0
 idna==3.10
 itsdangerous==2.2.0

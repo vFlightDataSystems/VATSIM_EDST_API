@@ -97,7 +97,7 @@ def get_route_fixes(route: str, airports: list = None, dest: str = None) -> list
         airports = []
     if dest and dest not in airports:
         airports.append(dest)
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    client: MongoClient = mongo_client.reader_client
     route = list(filter(None, re.split(r'\s|\.', route)))
     new_route = []
     prev_segment = None

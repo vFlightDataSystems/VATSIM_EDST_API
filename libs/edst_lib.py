@@ -43,7 +43,7 @@ def get_route_data(fixes: list) -> list:
 
     :rtype: list
     """
-    client: MongoClient = g.mongo_reader_client if g else mongo_client.reader_client
+    client: MongoClient = mongo_client.reader_client
     points = []
     for fix in fixes:
         try:
@@ -64,7 +64,9 @@ def get_route_data(fixes: list) -> list:
 
 def get_edst_aar(artcc: str, aircraft: str, dest: str, alt: int, route: str) -> list:
     nat_list = set(lib.get_nat_types(aircraft) + ['NATALL'])
-    aar_list = aar_lib.get_artcc_aar(artcc, dest)
+    # TODO: fix the get_artcc_aar call. For now a blank list is returned
+    # aar_list = aar_lib.get_artcc_aar(artcc, dest)
+    aar_list = []
     route_fixes = lib.get_route_fixes(route, [dest])
     available_aar = []
     for aar in aar_list:

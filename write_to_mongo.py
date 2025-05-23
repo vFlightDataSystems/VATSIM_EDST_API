@@ -11,7 +11,6 @@ import xml.etree.ElementTree as ET
 
 from pymongo import MongoClient
 from config import *
-# import mongo_users
 
 NATTYPE_FILENAME = 'adrdata/ACCriteriaTypes.csv'
 STARDP_FILENAME = 'navdata_parser/out/stardp.json'
@@ -25,6 +24,8 @@ FAA_PRD_FILENAME = 'navdata_parser/out/faa_prd.csv'
 FAA_CDR_FILENAME = 'navdata_parser/out/cdr.csv'
 CIFP_DATA_FILENAME = 'navdata_parser/out/cifp_data.json'
 AAR_FILENAME = 'adrdata/2112_AAR.csv'
+ADR_FILENAME = 'adrdata/ADR.xml'
+ADAR_FILENAME = 'adrdata/ADAR.xml'
 
 fd_db_name = 'flightdata'
 nav_db_name = 'navdata'
@@ -152,8 +153,10 @@ def write_adar(filename, dp_data, star_data):
                     print(f'{dp} not in nasr!')
             rows.append(row)
 
-    user = f'{artcc}_admin'
-    password = mongo_users.users[user]
+    # user = f'{artcc}_admin'
+    # password = mongo_users.users[user]
+    user = "admin"
+    password = "password"
     client: MongoClient = get_mongo_client(user, password, artcc)
     db = client[artcc]
     col = db[f'adar']
@@ -686,29 +689,29 @@ def write_all_artcc_ref_fixes():
 
 
 if __name__ == '__main__':
-    # write_navdata(nav_db_name)
-    # write_nattypes(NATTYPE_FILENAME, fd_db_name)
+    write_navdata(nav_db_name)
+    write_nattypes(NATTYPE_FILENAME, fd_db_name)
     with open(STARDP_FILENAME, 'r') as f:
         stardp_data = json.load(f)
     dp_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'DP'}
     star_data = {row['procedure'][:-1]: row for row in stardp_data if row['type'] == 'STAR'}
-    # for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
-    #     path = Path(filepath)
-    #     if path.stem[:3] == 'adr':
-    #         write_adr(filepath, dp_data)
-    #     if path.stem[:4] == 'adar':
-    #         write_adar(filepath, dp_data, star_data)
-    # write_aar(AAR_FILENAME)
-    # write_faa_data(fd_db_name)
-    # write_beacons(fd_db_name)
-    # add_mongo_users()
-    # write_fav()
-    # write_artcc_fav('zbw')
-    # write_artcc_fav('zlc')
-    # write_gpd_data('zbw')
-    # write_gpd_data('zlc')
-    # write_artcc_profiles('zlc')
-    # write_all_artcc_ref_fixes()
-    # write_adr_xml_to_mongo('/home/jonah-lefkoff/Downloads/eram-adaptation/ADR.xml')
-    import_adar_xml('/home/jonah-lefkoff/Downloads/eram-adaptation/ADAR.xml', dp_data, star_data)
+    for filepath in glob.iglob('adrdata/AdaptedRoutes/*'):
+        path = Path(filepath)
+        if path.stem[:3] == 'adr':
+            write_adr(filepath, dp_data)
+        if path.stem[:4] == 'adar':
+            write_adar(filepath, dp_data, star_data)
+    write_aar(AAR_FILENAME)
+    write_faa_data(fd_db_name)
+    write_beacons(fd_db_name)
+    add_mongo_users()
+    write_fav()
+    write_artcc_fav('zbw')
+    write_artcc_fav('zlc')
+    write_gpd_data('zbw')
+    write_gpd_data('zlc')
+    write_artcc_profiles('zlc')
+    write_all_artcc_ref_fixes()
+    write_adr_xml_to_mongo(ADR_FILENAME)
+    import_adar_xml(ADAR_FILENAME, dp_data, star_data)
     pass
