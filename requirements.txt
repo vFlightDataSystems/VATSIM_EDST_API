@@ -16,5 +16,5 @@ lxml==5.3.2
 MarkupSafe==3.0.2
 pymongo==4.11.3
 requests==2.32.3
-urllib3==2.3.0
+urllib3==2.5.0
 Werkzeug==3.1.3
