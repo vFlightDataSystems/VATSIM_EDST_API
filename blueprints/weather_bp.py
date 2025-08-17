@@ -2,9 +2,11 @@ import logging
 import re
 from typing import Optional
 
+import numpy as np
 import requests
 from lxml import etree
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
+from libs.weather_data_lock import weather_data, data_lock
 
 weather_blueprint = Blueprint('weather', __name__)
 
@@ -35,6 +37,41 @@ def _metar(airport):
 
     metar_text = response.content.decode('utf-8')
     return jsonify([metar_text])
+
+@weather_blueprint.route('/winds')
+def winds():
+    # query params
+    top_lat = float(request.args.get("toplat"))
+    top_lon = float(request.args.get("toplong"))
+    bottom_lat = float(request.args.get("bottomlat"))
+    bottom_lon = float(request.args.get("bottomlong"))
+    fl = int(request.args.get("fl", 300))  # default FL300
+
+    with data_lock:
+        lats = weather_data["lats"]
+        lons = weather_data["lons"]
+        levels = weather_data["levels"]
+
+        if lats is None or fl not in levels:
+            return jsonify({"error": "No data loaded"}), 503
+
+        lat_min, lat_max = sorted([bottom_lat, top_lat])
+        lon_min, lon_max = sorted([bottom_lon, top_lon])
+
+        mask = ((lats >= lat_min) & (lats <= lat_max) &
+                (lons >= lon_min) & (lons <= lon_max))
+
+        points = []
+        for i, j in zip(*np.where(mask)):
+            points.append({
+                "latitude": float(round(lats[i, j], 2)),
+                "longitude": float(round(lons[i, j], 2)),
+                "wind_speed_kt": int(levels[fl]["spd"][i, j]),
+                "wind_direction_deg_true": int(levels[fl]["dir"][i, j]),
+                "temperature_c": int(levels[fl]["temp"][i, j]),
+            })
+
+    return jsonify({"points": points})
 
 
 @weather_blueprint.route('/sigmets')
