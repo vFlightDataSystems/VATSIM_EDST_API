@@ -1,6 +1,6 @@
 import time
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask
 from flask_cors import CORS
 import threading
@@ -13,6 +13,7 @@ from blueprints.route_analysis_bp import route_analysis_blueprint
 import mongo_client
 
 from libs.wind_lib import download_rap_grib2, interpolate_uv_temp_at_flight_levels, get_date
+from libs.weather_data_lock import weather_data, data_lock
 
 PREFIX = '/api'
 
@@ -48,14 +49,28 @@ def run_updater():
             date_str, cycle_hour, forecast_hour, save_path = get_date()
             download_rap_grib2(date_str, cycle_hour, forecast_hour, save_path)
             interpolate_uv_temp_at_flight_levels(save_path)
+            processed_at = datetime.now(timezone.utc).isoformat()
+            new_state = {
+                'String': date_str,
+                'Cycle': cycle_hour,
+                'Forecast Hour': forecast_hour,
+                'Processed At': processed_at
+            }
+            with data_lock:
+                weather_data['wx_state'] = new_state
+                weather_data['last_updated_utc'] = processed_at
+                weather_data['grib_path'] = save_path
+
             print(f"[Updater] Weather data updated {date_str} {cycle_hour}z f{forecast_hour}")
 
-            # Calculate next "5 minutes past the hour" in UTC
-            now = datetime.utcnow()
-            next_run = (now + timedelta(hours=1)).replace(minute=5, second=0, microsecond=0)
-            sleep_time = (next_run - datetime.utcnow()).total_seconds()
-            print(f"[Updater] Sleeping {int(sleep_time)}s until {next_run} UTC")
-            time.sleep(sleep_time)
+            # schedule next run at the next HH:05 UTC
+            now = datetime.now(timezone.utc)
+            next_run = now.replace(minute=5, second=0, microsecond=0)
+            if now >= next_run:
+                next_run = next_run + timedelta(hours=1)
+            sleep_seconds = (next_run - now).total_seconds()
+            print(f"[Updater] Next run scheduled at {next_run.isoformat()} (in {int(sleep_seconds)}s)")
+            time.sleep(sleep_seconds)
 
         except Exception as e:
             print("Updater error:", e)

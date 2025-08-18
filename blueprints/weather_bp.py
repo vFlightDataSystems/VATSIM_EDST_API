@@ -61,17 +61,35 @@ def winds():
         mask = ((lats >= lat_min) & (lats <= lat_max) &
                 (lons >= lon_min) & (lons <= lon_max))
 
-        points = []
-        for i, j in zip(*np.where(mask)):
-            points.append({
-                "latitude": float(round(lats[i, j], 2)),
-                "longitude": float(round(lons[i, j], 2)),
-                "wind_speed_kt": int(levels[fl]["spd"][i, j]),
-                "wind_direction_deg_true": int(levels[fl]["dir"][i, j]),
-                "temperature_c": int(levels[fl]["temp"][i, j]),
-            })
+        # find indices inside mask
+        indices = np.where(mask)
+        if indices[0].size == 0:
+            return jsonify({"points": []})
 
-    return jsonify({"points": points})
+        # Limit to at most 15x15 samples regardless of zoom
+        MAX_DIM = 15
+        unique_rows = np.unique(indices[0])
+        unique_cols = np.unique(indices[1])
+
+        keep_rows = unique_rows[np.linspace(0, len(unique_rows) - 1, min(len(unique_rows), MAX_DIM), dtype=int)]
+        keep_cols = unique_cols[np.linspace(0, len(unique_cols) - 1, min(len(unique_cols), MAX_DIM), dtype=int)]
+
+        points = []
+        for i in keep_rows:
+            for j in keep_cols:
+                if not mask[i, j]:
+                    continue
+                points.append({
+                    "latitude": float(round(lats[i, j], 2)),
+                    "longitude": float(round(lons[i, j], 2)),
+                    "wind_speed_kt": int(levels[fl]["spd"][i, j]),
+                    "wind_direction_deg_true": int(levels[fl]["dir"][i, j]),
+                    "temperature_c": int(levels[fl]["temp"][i, j]),
+                })
+    with data_lock:
+        metadata = weather_data.get("wx_state")
+
+    return jsonify({"points": points, "metadata": metadata})
 
 
 @weather_blueprint.route('/sigmets')

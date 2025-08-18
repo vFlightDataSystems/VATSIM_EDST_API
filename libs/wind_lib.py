@@ -3,7 +3,7 @@ import requests
 import numpy as np
 from libs.weather_data_lock import weather_data, data_lock
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import csv
 
@@ -67,8 +67,11 @@ def interpolate_uv_temp_at_flight_levels(grib_file):
                 speed = np.sqrt(u_val**2 + v_val**2)
                 direction = (270 - np.degrees(np.arctan2(v_val, u_val))) % 360
 
+                # convert speed from m/s to knots (1 m/s = 1.94384449 kt)
+                speed_kt = speed * 1.94384449
+
                 temp_2d[i, j] = int(round(t_val))
-                speed_2d[i, j] = int(round(speed))
+                speed_2d[i, j] = int(round(speed_kt))
                 dir_2d[i, j]   = int(round(direction))
 
         level_dict[int(fl)] = {"temp": temp_2d, "spd": speed_2d, "dir": dir_2d}
@@ -82,29 +85,22 @@ def interpolate_uv_temp_at_flight_levels(grib_file):
 
 # Function to get the current RAP forecast date and time, and build file path info
 def get_date():
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     date_str = now.strftime('%Y%m%d')
     cycle_hour = '12' if now.hour >= 12 else '00'
     forecast_hour = '00'
     save_path = 'rap_latest.grib2'
-
-    # Store state in JSON format
-    output = {'String': date_str, 'Cycle': cycle_hour, 'Forecast Hour': forecast_hour}
-    with open('wx_state.json', 'w') as f:
-        json.dump(output, f, indent=4)
-
     return date_str, cycle_hour, forecast_hour, save_path
 
 # Function to check if new forecast hour differs from previously stored state
 def check_state(new_forecast):
-    f = open('state.json')
-    data = json.load(f)
-
-    if new_forecast != data['Forecast Hour']:
-        output = True
-    else:
-        output = False
-    return output
+    # read previous forecast from in-memory store
+    with data_lock:
+        prev_state = weather_data.get('wx_state')
+    if not prev_state:
+        # no previous state -> treat as new
+        return True
+    return new_forecast != prev_state.get('Forecast Hour')
 
 # Wrapper function to execute the full workflow conditionally based on forecast state
 def run_grid():
@@ -114,6 +110,16 @@ def run_grid():
     if state_check == True:
         download_rap_grib2(date_str, cycle_hour, forecast_hour, save_path)
         interpolate_uv_temp_at_flight_levels(save_path)
+        # persist new state in memory (add processed timestamp)
+        processed_at = datetime.now(timezone.utc).isoformat()
+        new_state = {
+            'String': date_str,
+            'Cycle': cycle_hour,
+            'Forecast Hour': forecast_hour,
+            'Processed At': processed_at
+        }
+        with data_lock:
+            weather_data['wx_state'] = new_state
         output = 'Completed'
     else:
         output = 'Error, forecast is the same as previous forecast'
