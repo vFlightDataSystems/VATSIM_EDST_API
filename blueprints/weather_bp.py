@@ -43,7 +43,7 @@ def _get_sigmets():
   centerlon = request.args.get('centerLon')
   
   response = requests.get(
-    'https://aviationweather.gov/api/data/airsigmet?format=json&types=sigmet').json()
+    'https://aviationweather.gov/api/data/airsigmet?format=json').json()
   
   # Only filter if we have both lat and lon
   if centerlat and centerlon:
