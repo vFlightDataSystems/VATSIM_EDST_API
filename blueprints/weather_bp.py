@@ -4,7 +4,8 @@ from typing import Optional
 
 import requests
 from lxml import etree
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
+from libs.helpers import haversine_distance
 
 weather_blueprint = Blueprint('weather', __name__)
 
@@ -36,27 +37,33 @@ def _metar(airport):
     metar_text = response.content.decode('utf-8')
     return jsonify([metar_text])
 
-
 @weather_blueprint.route('/sigmets')
 def _get_sigmets():
-    response = requests.get(
-        'https://aviationweather.gov/api/data/airsigmet?format=xml')
-    sigmet_list = []
-    tree = etree.fromstring(response.content)
-    for entry in tree.iter('AIRSIGMET'):
-        try:
-            sigmet_entry = {
-                'text': entry.find('raw_text').text,
-                'hazard': dict(entry.find('hazard').attrib),
-                'area': [[p.find('longitude').text, p.find('latitude').text] for p in entry.find('area').iter('point')],
-                'altitude': dict(entry.find('altitude').attrib),
-                'airsigmet_type': entry.find('airsigmet_type').text,
-            }
-            sigmet_list.append(sigmet_entry)
-        except Exception as e:
-            pass
-            # logging.Logger(str(e))
-    return jsonify(sigmet_list)
+  centerlat = request.args.get('centerLat')
+  centerlon = request.args.get('centerLon')
+  
+  response = requests.get(
+    'https://aviationweather.gov/api/data/airsigmet?format=json&types=sigmet').json()
+  
+  # Only filter if we have both lat and lon
+  if centerlat and centerlon:
+    centerlat = float(centerlat)
+    centerlon = float(centerlon)
+    
+    # Filter sigmets within 150nm
+    filtered_sigmets = []
+    for sigmet in response:
+      # Check if any point in sigmet polygon is within range
+      coords = sigmet.get('coords', [])
+      for coord in coords:
+        dist = haversine_distance(centerlat, centerlon, 
+              coord['lat'], coord['lon'])
+        if dist <= 150:
+          filtered_sigmets.append(sigmet)
+          break
+    return jsonify(filtered_sigmets)
+  
+  return jsonify(response)
 
 
 @weather_blueprint.route('/datis/airport/<airport>')
