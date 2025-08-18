@@ -5,7 +5,8 @@ from typing import Optional
 import requests
 from lxml import etree
 from flask import Blueprint, jsonify, request
-from libs.helpers import haversine_distance
+from shapely.geometry import shape, Point, Polygon
+import json
 
 weather_blueprint = Blueprint('weather', __name__)
 
@@ -39,32 +40,37 @@ def _metar(airport):
 
 @weather_blueprint.route('/sigmets')
 def _get_sigmets():
-  centerlat = request.args.get('centerLat')
-  centerlon = request.args.get('centerLon')
-  
-  response = requests.get(
-    'https://aviationweather.gov/api/data/airsigmet?format=json').json()
-  
-  # Only filter if we have both lat and lon
-  if centerlat and centerlon:
-    centerlat = float(centerlat)
-    centerlon = float(centerlon)
-    
-    # Filter sigmets within 150nm
-    filtered_sigmets = []
-    for sigmet in response:
-      # Check if any point in sigmet polygon is within range
-      coords = sigmet.get('coords', [])
-      for coord in coords:
-        dist = haversine_distance(centerlat, centerlon, 
-              coord['lat'], coord['lon'])
-        if dist <= 150:
-          filtered_sigmets.append(sigmet)
-          break
-    return jsonify(filtered_sigmets)
-  
-  return jsonify(response)
+    artcc_id = request.args.get('artcc')
+    response = requests.get(
+        'https://aviationweather.gov/api/data/airsigmet?format=json').json()
 
+    if artcc_id:
+        # Load ARTCC boundary polygon
+        with open('resources/ArtccBoundaries.geojson') as f:
+            geojson = json.load(f)
+        artcc_poly = None
+        for feature in geojson['features']:
+            if feature['properties']['id'].upper() == artcc_id.upper():
+                artcc_poly = shape(feature['geometry'])
+                break
+        if not artcc_poly:
+            return jsonify([])  # or handle error
+
+        filtered_sigmets = []
+        for sigmet in response:
+            coords = sigmet.get('coords', [])
+            for coord in coords:
+                pt = Point(coord['lon'], coord['lat'])
+                if artcc_poly.contains(pt):
+                    filtered_sigmets.append(sigmet)
+                    break
+                # Check distance to polygon boundary
+                if artcc_poly.exterior.distance(pt) * 60 <= 150:  # degrees to nm approx
+                    filtered_sigmets.append(sigmet)
+                    break
+        return jsonify(filtered_sigmets)
+
+    return jsonify(response)
 
 @weather_blueprint.route('/datis/airport/<airport>')
 def _get_datis(airport):

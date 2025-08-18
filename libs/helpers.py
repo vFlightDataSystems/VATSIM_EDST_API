@@ -31,12 +31,3 @@ def matches_deg_min_lat_lon_format(s: str) -> bool:
 
 def matches_any_custom_fix_format(s: str) -> bool:
     return matches_frd_format(s) or matches_deg_only_lat_lon_format(s) or matches_deg_min_lat_lon_format(s)
-
-def haversine_distance(lat1, lon1, lat2, lon2):
-  R = 3440.065  # Earth radius in nautical miles
-  lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-  dlat = lat2 - lat1
-  dlon = lon2 - lon1
-  a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-  c = 2 * atan2(sqrt(a), sqrt(1-a))
-  return R * c
