@@ -1,6 +1,7 @@
 import time
 import os
 from datetime import datetime, timedelta, timezone
+import traceback
 from flask import Flask
 from flask_cors import CORS
 import threading
@@ -12,7 +13,7 @@ from blueprints.weather_bp import weather_blueprint
 from blueprints.route_analysis_bp import route_analysis_blueprint
 import mongo_client
 
-from libs.wind_lib import download_rap_grib2, interpolate_uv_temp_at_flight_levels, get_date
+from libs.wind_lib import get_rap_grib2_stream, interpolate_uv_temp_at_flight_levels, get_date
 from libs.weather_data_lock import weather_data, data_lock
 
 PREFIX = '/api'
@@ -46,22 +47,21 @@ def run_updater():
     while True:
         try:
             # Always run once immediately at startup
-            date_str, cycle_hour, forecast_hour, save_path = get_date()
-            download_rap_grib2(date_str, cycle_hour, forecast_hour, save_path)
-            interpolate_uv_temp_at_flight_levels(save_path)
-            processed_at = datetime.now(timezone.utc).isoformat()
-            new_state = {
-                'String': date_str,
-                'Cycle': cycle_hour,
-                'Forecast Hour': forecast_hour,
-                'Processed At': processed_at
-            }
-            with data_lock:
-                weather_data['wx_state'] = new_state
-                weather_data['last_updated_utc'] = processed_at
-                weather_data['grib_path'] = save_path
 
-            print(f"[Updater] Weather data updated {date_str} {cycle_hour}z f{forecast_hour}")
+            date_info = get_date()
+            grib_stream = get_rap_grib2_stream(date_info.date_str, date_info.cycle_hour, date_info.forecast_hour)
+            if grib_stream is None:
+                print("[Updater] Error, failed to download GRIB2 stream")
+                time.sleep(300)  # retry in 5 min if failed
+                continue
+            interpolate_uv_temp_at_flight_levels(grib_stream)
+            with data_lock:
+                weather_data.process_date = date_info.date_str
+                weather_data.process_cycle = date_info.cycle_hour
+                weather_data.forecast_hour = date_info.forecast_hour
+                weather_data.processed_at_utc = datetime.now(timezone.utc).isoformat()
+
+            print(f"[Updater] Weather data updated {date_info.date_str} {date_info.cycle_hour}z f{date_info.forecast_hour}")
 
             # schedule next run at the next HH:05 UTC
             now = datetime.now(timezone.utc)
@@ -74,6 +74,7 @@ def run_updater():
 
         except Exception as e:
             print("Updater error:", e)
+            traceback.print_exc()
             time.sleep(300)  # retry in 5 min if failed
 
 

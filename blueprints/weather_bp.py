@@ -1,12 +1,11 @@
-import logging
 import re
-from typing import Optional
-
 import numpy as np
 import requests
 from lxml import etree
 from flask import Blueprint, jsonify, request
 from libs.weather_data_lock import weather_data, data_lock
+from dataclasses import dataclass
+from typing import List
 
 weather_blueprint = Blueprint('weather', __name__)
 
@@ -40,57 +39,66 @@ def _metar(airport):
 
 @weather_blueprint.route('/winds')
 def winds():
-    # query params
-    top_lat = float(request.args.get("toplat"))
-    top_lon = float(request.args.get("toplong"))
-    bottom_lat = float(request.args.get("bottomlat"))
-    bottom_lon = float(request.args.get("bottomlong"))
-    fl = int(request.args.get("fl", 300))  # default FL300
+    # query parameters, ignore type warnings due to manual check below
+    top_lat = float(request.args.get("toplat"))     # type: ignore
+    top_lon = float(request.args.get("toplong"))     # type: ignore
+    bottom_lat = float(request.args.get("bottomlat"))     # type: ignore
+    bottom_lon = float(request.args.get("bottomlong"))     # type: ignore
+    fl = int(request.args.get("fl"))     # type: ignore
+
+    if None in [top_lat, top_lon, bottom_lat, bottom_lon, fl]:
+      return jsonify({"error": "Missing required parameters: toplat, toplong, bottomlat, bottomlong, fl"}), 400
 
     with data_lock:
-        lats = weather_data["lats"]
-        lons = weather_data["lons"]
-        levels = weather_data["levels"]
+        lats = weather_data.lats
+        lons = weather_data.lons
+        levels = weather_data.levels
+        metadata = weather_data.wx_state
 
-        if lats is None or fl not in levels:
-            return jsonify({"error": "No data loaded"}), 503
+    if lats is None or fl not in levels:
+        return jsonify({"error": "No data loaded"}), 503
 
-        lat_min, lat_max = sorted([bottom_lat, top_lat])
-        lon_min, lon_max = sorted([bottom_lon, top_lon])
+    lat_min, lat_max = sorted([bottom_lat, top_lat])
+    lon_min, lon_max = sorted([bottom_lon, top_lon])
 
-        mask = ((lats >= lat_min) & (lats <= lat_max) &
-                (lons >= lon_min) & (lons <= lon_max))
+    mask = ((lats >= lat_min) & (lats <= lat_max) &
+            (lons >= lon_min) & (lons <= lon_max))
 
-        # find indices inside mask
-        indices = np.where(mask)
-        if indices[0].size == 0:
-            return jsonify({"points": []})
+    # find indices inside mask
+    indices = np.where(mask)
+    if indices[0].size == 0:
+        return jsonify({"points": []})
 
-        # Limit to at most 15x15 samples regardless of zoom
-        MAX_DIM = 15
-        unique_rows = np.unique(indices[0])
-        unique_cols = np.unique(indices[1])
+    # Limit to at most 15x15 samples regardless of zoom
+    MAX_DIM = 15
+    unique_rows = np.unique(indices[0])
+    unique_cols = np.unique(indices[1])
 
-        keep_rows = unique_rows[np.linspace(0, len(unique_rows) - 1, min(len(unique_rows), MAX_DIM), dtype=int)]
-        keep_cols = unique_cols[np.linspace(0, len(unique_cols) - 1, min(len(unique_cols), MAX_DIM), dtype=int)]
+    keep_rows = unique_rows[np.linspace(0, len(unique_rows) - 1, min(len(unique_rows), MAX_DIM), dtype=int)]
+    keep_cols = unique_cols[np.linspace(0, len(unique_cols) - 1, min(len(unique_cols), MAX_DIM), dtype=int)]
 
-        points = []
-        for i in keep_rows:
-            for j in keep_cols:
-                if not mask[i, j]:
-                    continue
-                points.append({
-                    "latitude": float(round(lats[i, j], 2)),
-                    "longitude": float(round(lons[i, j], 2)),
-                    "wind_speed_kt": int(levels[fl]["spd"][i, j]),
-                    "wind_direction_deg_true": int(levels[fl]["dir"][i, j]),
-                    "temperature_c": int(levels[fl]["temp"][i, j]),
-                })
-    with data_lock:
-        metadata = weather_data.get("wx_state")
+    @dataclass
+    class WindPoint:
+        latitude: float
+        longitude: float
+        wind_speed_kt: int
+        wind_direction_deg_true: int
+        temperature_c: int
 
-    return jsonify({"points": points, "metadata": metadata})
+    point: List[WindPoint] = []
+    for i in keep_rows:
+        for j in keep_cols:
+            if not mask[i, j]:
+                continue
+            point.append(WindPoint(
+              latitude=float(round(lats[i, j], 2)),
+              longitude=float(round(lons[i, j], 2)),
+              wind_speed_kt=int(levels[fl]["spd"][i, j]),
+              wind_direction_deg_true=int(levels[fl]["dir"][i, j]),
+              temperature_c=int(levels[fl]["temp"][i, j])
+            ))
 
+    return jsonify({"points": point, "metadata": metadata})
 
 @weather_blueprint.route('/sigmets')
 def _get_sigmets():
