@@ -3,14 +3,17 @@ from io import BufferedReader, BytesIO
 import pygrib
 import requests
 import numpy as np
-from libs.weather_data_lock import weather_data, data_lock, WeatherData
-from datetime import datetime, timezone
+from libs.weather_data_lock import weather_data, data_lock, WindGridData
+from datetime import datetime, timezone, timedelta
+from html.parser import HTMLParser
+import re
 
 RAP_BASE_URL = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/rap/prod'
 KELVIN_TO_CELSIUS = -273.15
 METER_TO_FEET = 3.281
 FEET_PER_FLIGHT_LEVEL = 100.0
 METERS_PER_SEC_TO_KNOTS = 1.94384449
+RAP_GRIB_FILE_IDENTIFIER = 'awp130pgrbf'
 
 def get_rap_grib2_stream(date_str: str, cycle_hour: str, forecast_hour: str) -> BufferedReader | None:
     """Acquire a stream of RAP GRIB2 data from NOAA
@@ -98,7 +101,7 @@ def interpolate_uv_temp_at_flight_levels(grib_buffer: BufferedReader):
 
     grbs.close()
 
-def different_hour(new_forecast: WeatherData) -> bool:
+def different_hour(new_forecast: WindGridData) -> bool:
     """Checks if the provided new forecast is newer than the existing in-memory forecast
 
     Args:
@@ -121,16 +124,86 @@ class RAPDateInfo:
     cycle_hour: str
     forecast_hour: str
 
-# Function to get the current RAP forecast date and time, and build file path info
-def get_date() -> RAPDateInfo:
-    """Gets the current datetime and formulates the string for use in RAP model fetching
+
+class RAP_GribDirectoryFileParser(HTMLParser):
+    """HTML parser to extract GRIB2 file names from RAP directory listing"""
+    def __init__(self):
+        super().__init__()
+        self.grib_files = []
+    
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            for attr, value in attrs:
+                if attr == 'href' and value and RAP_GRIB_FILE_IDENTIFIER in value and value.endswith('.grib2'):
+                    self.grib_files.append(value)
+
+
+def _search_for_latest_rap(date_str: str) -> RAPDateInfo | None:
+    """Query the RAP directory to find the latest available forecast file
+    
+    Args:
+        date_str (str): Date string in 'YYYYMMDD' format
+        
+    Returns:
+        RAPDateInfo: Latest available forecast info, or None if no files found
+    """
+    url = f"{RAP_BASE_URL}/rap.{date_str}/"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code != 200:
+            return None
+        
+        # Parse HTML to extract GRIB2 file names
+        parser = RAP_GribDirectoryFileParser()
+        parser.feed(response.text)
+        
+        if not parser.grib_files:
+            return None
+        
+        # Sort files to get the latest one
+        # Files are in format: rap.t{cycle_hour}z.awp130pgrbf{forecast_hour}.grib2
+        latest_file = sorted(parser.grib_files)[-1]
+        
+        # Extract cycle_hour and forecast_hour from filename
+        # Example: rap.t23z.awp130pgrbf21.grib2
+        match = re.match(r'rap\.t(\d{2})z\.awp130pgrbf(\d{2})\.grib2', latest_file)
+        if match:
+            cycle_hour = match.group(1)
+            forecast_hour = match.group(2)
+            return RAPDateInfo(date_str, cycle_hour, forecast_hour)
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error querying RAP directory: {e}")
+        return None
+
+
+def get_latest_rap_forecast() -> RAPDateInfo:
+    """Gets the latest available RAP forecast, falling back to previous day if needed
+    
+    Queries the RAP server to find the most recent forecast file available,
+    making the approach robust to delays in forecast publication.
 
     Returns:
-        RAPDateInfo: Current forecast date information
+        RAPDateInfo: Latest available forecast date information
     """
     now = datetime.now(timezone.utc)
     date_str = now.strftime('%Y%m%d')
-    cycle_hour = '12' if now.hour >= 12 else '00'
-    forecast_hour = '00'
-    return RAPDateInfo(date_str, cycle_hour, forecast_hour)
+    
+    # Try to find latest forecast for today
+    latest = _search_for_latest_rap(date_str)
+    if latest:
+        return latest
+    
+    # If not found today, try yesterday
+    yesterday = now - timedelta(days=1)
+    date_str_yesterday = yesterday.strftime('%Y%m%d')
+    latest = _search_for_latest_rap(date_str_yesterday)
+    if latest:
+        return latest
+    
+    # No forecast files found
+    raise Exception("No RAP forecast files found for today or yesterday")
 
